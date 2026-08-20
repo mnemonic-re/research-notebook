@@ -5,6 +5,7 @@ progress/
 scratch/
 experiments/
 notes/
+tools/
 
 # Build & Generated outputs
 dist/

@@ -1,0 +1,88 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { getReadingTime } from '../utils/readingTime';
+
+interface Props {
+  title: string;
+  description: string;
+  date: Date;
+  tags?: string[];
+  category?: string;
+  image?: string;
+  rawContent?: string;
+}
+
+const { title, description, date, tags = [], category, image, rawContent = '' } = Astro.props;
+
+const formattedDate = new Date(date).toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
+const readingTime = rawContent ? getReadingTime(rawContent) : '';
+---
+
+<BaseLayout title={`${title} | Research Notebook`} description={description} image={image} type="article">
+  <article class="post-article">
+    <header class="post-header">
+      <h1 class="post-title">{title}</h1>
+      <div class="post-meta">
+        <time datetime={new Date(date).toISOString()}>{formattedDate}</time>
+        {readingTime && <span class="meta-separator">•</span>}
+        {readingTime && <span>{readingTime}</span>}
+        {category && <span class="meta-separator">•</span>}
+        {category && <a href={`/categories/${category.toLowerCase().replace(/\s+/g, '-')}/`} class="category-link">{category}</a>}
+      </div>
+      {tags.length > 0 && (
+        <div class="post-tags">
+          {tags.map((tag) => (
+            <a href={`/tags/${tag.toLowerCase()}/`} class="tag-badge">
+              #{tag}
+            </a>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <div class="post-content">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-article {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .post-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .post-title {
+    margin-bottom: 0.5rem;
+  }
+  .post-meta {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+  }
+  .meta-separator {
+    margin: 0 0.4rem;
+  }
+  .category-link {
+    color: var(--text-muted);
+  }
+  .category-link:hover {
+    color: var(--accent-color);
+  }
+  .post-tags {
+    margin-top: 0.5rem;
+  }
+  .post-content {
+    line-height: 1.7;
+  }
+</style>

@@ -1,0 +1,22 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="container footer-content">
+    <p>&copy; {currentYear} Personal Cybersecurity Research Notebook. All technical notes for local research.</p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--border-color);
+    padding: 1.5rem 0;
+    margin-top: auto;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .footer-content {
+    text-align: center;
+  }
+</style>

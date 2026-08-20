@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPublishedPosts } from '../../utils/posts';
+
+const allPublished = await getPublishedPosts();
+const tagCounts = new Map<string, { display: string; count: number }>();
+
+allPublished.forEach((post) => {
+  post.data.tags.forEach((tag) => {
+    const key = tag.toLowerCase();
+    const existing = tagCounts.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      tagCounts.set(key, { display: tag, count: 1 });
+    }
+  });
+});
+
+const sortedTags = Array.from(tagCounts.entries()).sort((a, b) => b[1].count - a[1].count);
+---
+
+<BaseLayout title="Tags | Cybersecurity Research Notebook">
+  <div class="page-header">
+    <h1>Research Tags</h1>
+    <p>Browse technical articles by topic and research area.</p>
+  </div>
+
+  <div class="tags-cloud">
+    {sortedTags.map(([key, info]) => (
+      <a href={`/tags/${key}/`} class="tag-card">
+        <span class="tag-name">#{info.display}</span>
+        <span class="tag-count">{info.count} {info.count === 1 ? 'article' : 'articles'}</span>
+      </a>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .tags-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .tag-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.8rem 1.2rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .tag-card:hover {
+    border-color: var(--accent-color);
+    text-decoration: none;
+  }
+  .tag-name {
+    font-family: var(--font-mono);
+    color: var(--accent-color);
+    font-weight: 600;
+  }
+  .tag-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+</style>

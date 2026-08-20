@@ -1,0 +1,54 @@
+---
+title: "Validating an LLM Finding with WinDbg"
+description: "Sample research note exploring a methodology for verifying LLM-assisted static analysis hypotheses using WinDbg kernel debugging."
+date: 2026-08-20
+tags:
+  - Windows
+  - WinDbg
+  - Kernel
+  - ReverseEngineering
+draft: false
+---
+
+<div class="demo-banner">
+  [DEMO CONTENT] This article is temporary sample content generated for local site structure testing.
+</div>
+
+## Overview
+
+When using LLMs to analyze disassembled binary routines or decompiled C code, the model may suggest potential memory safety issues or unvalidated pointer dereferences. Static suggestions must always be dynamically verified in a controlled kernel debugging setup.
+
+## Debugging Setup
+
+In WinDbg connected to a target test VM over KDNET, we can set conditional breakpoints on candidate IOCTL dispatch routines.
+
+<Command>
+!analyze -v
+bp nt!IopSynchronousServiceTail "+r; g"
+</Command>
+
+<Note>
+Always verify symbol resolution before setting breakpoints on unexported functions or driver dispatch tables.
+</Note>
+
+## Disassembly Analysis
+
+Below is an example x64 assembly snippet demonstrating a register parameter setup for memory inspection:
+
+```text
+mov     rdi, rcx
+mov     rsi, rdx
+test    rsi, rsi
+jz      short loc_error
+mov     rax, [rdi+18h]
+cmp     dword ptr [rax], 222000h
+jne     short loc_invalid_ioctl
+```
+
+<Finding>
+Static verification confirmed that the control code validation check occurs prior to any parameter buffer dereference.
+</Finding>
+
+<Warning>
+This sample analysis is intended solely for local layout and component testing.
+</Warning>

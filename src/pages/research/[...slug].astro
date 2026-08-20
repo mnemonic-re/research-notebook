@@ -1,0 +1,31 @@
+---
+import { getPublishedPosts } from '../../utils/posts';
+import PostLayout from '../../layouts/PostLayout.astro';
+import Note from '../../components/Note.astro';
+import Warning from '../../components/Warning.astro';
+import Finding from '../../components/Finding.astro';
+import Command from '../../components/Command.astro';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+---
+
+<PostLayout
+  title={post.data.title}
+  description={post.data.description}
+  date={post.data.date}
+  tags={post.data.tags}
+  category={post.data.category}
+  image={post.data.image}
+  rawContent={post.body}
+>
+  <Content components={{ Note, Warning, Finding, Command }} />
+</PostLayout>

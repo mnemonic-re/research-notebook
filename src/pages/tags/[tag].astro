@@ -1,0 +1,85 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPublishedPosts } from '../../utils/posts';
+
+export async function getStaticPaths() {
+  const publishedPosts = await getPublishedPosts();
+  const tagsMap = new Map<string, string>();
+
+  publishedPosts.forEach((post) => {
+    post.data.tags.forEach((tag) => {
+      tagsMap.set(tag.toLowerCase(), tag);
+    });
+  });
+
+  return Array.from(tagsMap.entries()).map(([tagKey, originalTag]) => {
+    const filteredPosts = publishedPosts.filter((post) =>
+      post.data.tags.some((t) => t.toLowerCase() === tagKey)
+    );
+    return {
+      params: { tag: tagKey },
+      props: { tagName: originalTag, posts: filteredPosts },
+    };
+  });
+}
+
+const { tagName, posts } = Astro.props;
+---
+
+<BaseLayout title={`#${tagName} Research | Cybersecurity Research Notebook`}>
+  <div class="page-header">
+    <h1>Tag: <span class="tag-highlight">#{tagName}</span></h1>
+    <p>Found {posts.length} {posts.length === 1 ? 'article' : 'articles'}.</p>
+  </div>
+
+  <div class="post-list">
+    {posts.map((post) => (
+      <article class="post-card">
+        <time class="post-date">{new Date(post.data.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</time>
+        <h2 class="post-card-title">
+          <a href={`/research/${post.slug}/`}>{post.data.title}</a>
+        </h2>
+        <p class="post-card-desc">{post.data.description}</p>
+      </article>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .tag-highlight {
+    font-family: var(--font-mono);
+    color: var(--accent-color);
+  }
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .post-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 1.25rem;
+    border-radius: 6px;
+  }
+  .post-date {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .post-card-title {
+    font-size: 1.3rem;
+    margin-top: 0.2rem;
+    margin-bottom: 0.4rem;
+    border: none;
+    padding: 0;
+  }
+  .post-card-desc {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+  }
+</style>

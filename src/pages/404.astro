@@ -1,0 +1,51 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="404 — Page Not Found">
+  <div class="error-container">
+    <h1 class="error-code">404</h1>
+    <h2 class="error-title">Page Not Found</h2>
+    <p class="error-desc">
+      The requested execution path or route does not exist. Probably took an invalid branch or unmapped address.
+    </p>
+    <a href="/" class="return-btn">&larr; Return to Root</a>
+  </div>
+</BaseLayout>
+
+<style>
+  .error-container {
+    text-align: center;
+    padding: 4rem 1rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  .error-code {
+    font-family: var(--font-mono);
+    font-size: 5rem;
+    color: var(--accent-color);
+    margin-bottom: 0;
+  }
+  .error-title {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border: none;
+  }
+  .error-desc {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+  }
+  .return-btn {
+    font-family: var(--font-mono);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--accent-color);
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .return-btn:hover {
+    border-color: var(--accent-color);
+    text-decoration: none;
+  }
+</style>

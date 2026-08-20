@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="About | Cybersecurity Research Notebook">
+  <article class="about-page">
+    <h1>About This Notebook</h1>
+    <p>
+      Welcome to this technical research notebook. This site is dedicated to documenting personal experiments, low-level reverse engineering, Windows kernel analysis, and security research workflows.
+    </p>
+
+    <h2>Research Focus</h2>
+    <ul>
+      <li>Windows Internals & Architecture</li>
+      <li>Windows Kernel Driver Analysis</li>
+      <li>Static Analysis with IDA Pro & Ghidra</li>
+      <li>Dynamic Debugging with WinDbg</li>
+      <li>LLM-assisted Vulnerability Discovery & Methodology</li>
+    </ul>
+
+    <h2>Disclaimer</h2>
+    <p>
+      All content published on this site consists of personal security research notes, technical tutorials, and open methodology observations performed in isolated local lab environments.
+    </p>
+  </article>
+</BaseLayout>
+
+<style>
+  .about-page {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .about-page h2 {
+    margin-top: 1.8rem;
+  }
+</style>

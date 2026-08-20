@@ -1,0 +1,69 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Tools | Cybersecurity Research Notebook">
+  <div class="page-header">
+    <h1>Tools & Utilities</h1>
+    <p>Tools, plugins, and automation scripts developed during reverse engineering and security research.</p>
+  </div>
+
+  <div class="tools-grid">
+    <div class="tool-card">
+      <div class="tool-status status-placeholder">Planned / Private</div>
+      <h2>Kernel Research Tooling</h2>
+      <p>Custom scripts and automation helpers for driver analysis and dynamic IOCTL testing.</p>
+      <p class="tool-note">Note: Public repositories and open-source releases will be linked here once published.</p>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-status status-placeholder">In Development</div>
+      <h2>WinDbg Scripting Helpers</h2>
+      <p>Python/JavaScript extension scripts for automating register inspection and struct dumps in WinDbg preview.</p>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  .tool-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    border-radius: 6px;
+  }
+  .tool-status {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.8rem;
+  }
+  .status-placeholder {
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+  }
+  .tool-card h2 {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
+  .tool-note {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 0.8rem;
+    margin-bottom: 0;
+  }
+</style>

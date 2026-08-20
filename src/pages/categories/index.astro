@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPublishedPosts } from '../../utils/posts';
+
+const publishedPosts = await getPublishedPosts();
+const categoryCounts = new Map<string, { display: string; count: number }>();
+
+publishedPosts.forEach((post) => {
+  const cat = post.data.category || 'General';
+  const key = cat.toLowerCase().replace(/\s+/g, '-');
+  const existing = categoryCounts.get(key);
+  if (existing) {
+    existing.count++;
+  } else {
+    categoryCounts.set(key, { display: cat, count: 1 });
+  }
+});
+
+const sortedCategories = Array.from(categoryCounts.entries()).sort((a, b) => b[1].count - a[1].count);
+---
+
+<BaseLayout title="Categories | Cybersecurity Research Notebook">
+  <div class="page-header">
+    <h1>Research Categories</h1>
+    <p>Browse technical research articles grouped by functional category.</p>
+  </div>
+
+  <div class="categories-grid">
+    {sortedCategories.map(([key, info]) => (
+      <a href={`/categories/${key}/`} class="category-card">
+        <h2 class="category-name">{info.display}</h2>
+        <span class="category-count">{info.count} {info.count === 1 ? 'article' : 'articles'}</span>
+      </a>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+  .category-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 1.25rem;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .category-card:hover {
+    border-color: var(--accent-color);
+    text-decoration: none;
+  }
+  .category-name {
+    font-size: 1.1rem;
+    margin: 0;
+    color: var(--text-heading);
+  }
+  .category-count {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+</style>

@@ -1,0 +1,69 @@
+---
+const pathname = new URL(Astro.request.url).pathname;
+
+const navItems = [
+  { name: 'Research', href: '/research/' },
+  { name: 'Notes', href: '/notes/' },
+  { name: 'Tools', href: '/tools/' },
+  { name: 'Tags', href: '/tags/' },
+  { name: 'About', href: '/about/' },
+];
+---
+
+<header class="header">
+  <div class="container header-content">
+    <a href="/" class="site-title">
+      <span class="prompt-prefix">sec@research:~$</span> blog
+    </a>
+    <nav class="nav">
+      {navItems.map((item) => {
+        const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+        return (
+          <a href={item.href} class={isActive ? 'nav-link active' : 'nav-link'}>
+            {item.name}
+          </a>
+        );
+      })}
+    </nav>
+  </div>
+</header>
+
+<style>
+  .header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0;
+    background-color: var(--bg-secondary);
+  }
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .site-title {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-heading);
+  }
+  .site-title:hover {
+    text-decoration: none;
+  }
+  .prompt-prefix {
+    color: var(--accent-color);
+  }
+  .nav {
+    display: flex;
+    gap: 1.2rem;
+  }
+  .nav-link {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .nav-link:hover, .nav-link.active {
+    color: var(--accent-color);
+    text-decoration: none;
+  }
+</style>

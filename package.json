@@ -14,7 +14,6 @@
     "@astrojs/mdx": "^4.3.0",
     "@astrojs/rss": "^4.0.11",
     "@astrojs/sitemap": "^3.2.1",
-    "@rollup/rollup-win32-x64-msvc": "^4.62.5",
     "astro": "^5.4.0",
     "typescript": "^5.8.2"
   }

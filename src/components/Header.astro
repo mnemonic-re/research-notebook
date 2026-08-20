@@ -1,23 +1,24 @@
 ---
 const pathname = new URL(Astro.request.url).pathname;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 
 const navItems = [
-  { name: 'Research', href: '/research/' },
-  { name: 'Notes', href: '/notes/' },
-  { name: 'Tools', href: '/tools/' },
-  { name: 'Tags', href: '/tags/' },
-  { name: 'About', href: '/about/' },
+  { name: 'Research', href: `${base}research/` },
+  { name: 'Notes', href: `${base}notes/` },
+  { name: 'Tools', href: `${base}tools/` },
+  { name: 'Tags', href: `${base}tags/` },
+  { name: 'About', href: `${base}about/` },
 ];
 ---
 
 <header class="header">
   <div class="container header-content">
-    <a href="/" class="site-title">
+    <a href={base} class="site-title">
       <span class="prompt-prefix">sec@research:~$</span> blog
     </a>
     <nav class="nav">
       {navItems.map((item) => {
-        const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+        const isActive = pathname === item.href || (item.href !== base && pathname.startsWith(item.href));
         return (
           <a href={item.href} class={isActive ? 'nav-link active' : 'nav-link'}>
             {item.name}

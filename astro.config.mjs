@@ -4,7 +4,8 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'http://localhost:4321',
+  site: 'https://mnemonic-re.github.io',
+  base: '/research-notebook/',
   integrations: [mdx(), sitemap()],
   markdown: {
     shikiConfig: {

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 ---
 
 <BaseLayout title="404 — Page Not Found">
@@ -9,7 +10,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <p class="error-desc">
       The requested execution path or route does not exist. Probably took an invalid branch or unmapped address.
     </p>
-    <a href="/" class="return-btn">&larr; Return to Root</a>
+    <a href={base} class="return-btn">&larr; Return to Root</a>
   </div>
 </BaseLayout>
 

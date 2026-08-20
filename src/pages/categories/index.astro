@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublishedPosts } from '../../utils/posts';
 
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 const publishedPosts = await getPublishedPosts();
 const categoryCounts = new Map<string, { display: string; count: number }>();
 
@@ -27,7 +28,7 @@ const sortedCategories = Array.from(categoryCounts.entries()).sort((a, b) => b[1
 
   <div class="categories-grid">
     {sortedCategories.map(([key, info]) => (
-      <a href={`/categories/${key}/`} class="category-card">
+      <a href={`${base}categories/${key}/`} class="category-card">
         <h2 class="category-name">{info.display}</h2>
         <span class="category-count">{info.count} {info.count === 1 ? 'article' : 'articles'}</span>
       </a>

@@ -13,6 +13,7 @@ interface Props {
 }
 
 const { title, description, date, tags = [], category, image, rawContent = '' } = Astro.props;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 
 const formattedDate = new Date(date).toLocaleDateString('en-US', {
   year: 'numeric',
@@ -32,12 +33,12 @@ const readingTime = rawContent ? getReadingTime(rawContent) : '';
         {readingTime && <span class="meta-separator">•</span>}
         {readingTime && <span>{readingTime}</span>}
         {category && <span class="meta-separator">•</span>}
-        {category && <a href={`/categories/${category.toLowerCase().replace(/\s+/g, '-')}/`} class="category-link">{category}</a>}
+        {category && <a href={`${base}categories/${category.toLowerCase().replace(/\s+/g, '-')}/`} class="category-link">{category}</a>}
       </div>
       {tags.length > 0 && (
         <div class="post-tags">
           {tags.map((tag) => (
-            <a href={`/tags/${tag.toLowerCase()}/`} class="tag-badge">
+            <a href={`${base}tags/${tag.toLowerCase()}/`} class="tag-badge">
               #{tag}
             </a>
           ))}

@@ -31,7 +31,11 @@ bp nt!IopSynchronousServiceTail "+r; g"
 Always verify symbol resolution before setting breakpoints on unexported functions or driver dispatch tables.
 </Note>
 
-## Disassembly Analysis
+## Disassembly & Diffing Analysis
+
+Below is the IDA Pro Diaphora diffing analysis of the target driver dispatch routine:
+
+![IDA Diaphora Driver Diffing Analysis](/research-notebook/screenshots/validating-an-llm-finding-with-windbg/ida_diaphora.PNG)
 
 Below is an example x64 assembly snippet demonstrating a register parameter setup for memory inspection:
 

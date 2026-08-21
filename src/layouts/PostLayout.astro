@@ -50,7 +50,68 @@ const readingTime = rawContent ? getReadingTime(rawContent) : '';
       <slot />
     </div>
   </article>
+
+  <!-- Lightbox Modal for Enlarging Screenshots -->
+  <div id="screenshot-lightbox" class="lightbox-overlay" aria-hidden="true">
+    <button id="lightbox-close" class="lightbox-close-btn" aria-label="Close enlarged screenshot">&times;</button>
+    <div class="lightbox-inner">
+      <img id="lightbox-image" src="" alt="Enlarged screenshot" />
+      <p id="lightbox-caption" class="lightbox-caption"></p>
+    </div>
+  </div>
 </BaseLayout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const lightbox = document.getElementById('screenshot-lightbox');
+    const lightboxImg = document.getElementById('lightbox-image') as HTMLImageElement;
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const closeBtn = document.getElementById('lightbox-close');
+
+    if (!lightbox || !lightboxImg || !lightboxCaption || !closeBtn) return;
+
+    // Attach zoom handler to all images inside article content
+    const images = document.querySelectorAll('.post-content img');
+
+    images.forEach((img) => {
+      const imageEl = img as HTMLImageElement;
+      imageEl.style.cursor = 'zoom-in';
+
+      imageEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        lightboxImg.src = imageEl.src;
+        lightboxImg.alt = imageEl.alt || 'Enlarged screenshot';
+
+        const captionText = imageEl.alt || imageEl.getAttribute('title') || '';
+        lightboxCaption.textContent = captionText;
+
+        lightbox.classList.add('active');
+        lightbox.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    const closeLightbox = () => {
+      lightbox.classList.remove('active');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    };
+
+    closeBtn.addEventListener('click', closeLightbox);
+
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox || e.target === closeBtn) {
+        closeLightbox();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+        closeLightbox();
+      }
+    });
+  });
+</script>
 
 <style>
   .post-article {
@@ -85,5 +146,87 @@ const readingTime = rawContent ? getReadingTime(rawContent) : '';
   }
   .post-content {
     line-height: 1.7;
+  }
+  .post-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin: 1.5rem auto;
+    display: block;
+    cursor: zoom-in;
+    transition: border-color 0.2s ease, transform 0.15s ease;
+  }
+  .post-content :global(img:hover) {
+    border-color: var(--accent-color);
+  }
+
+  /* Lightbox Modal CSS */
+  .lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(10, 14, 20, 0.92);
+    backdrop-filter: blur(6px);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .lightbox-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .lightbox-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f0f6fc;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 2rem;
+    line-height: 1;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+    z-index: 10001;
+  }
+  .lightbox-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+  }
+  .lightbox-inner {
+    max-width: 92vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox-inner img {
+    max-width: 90vw;
+    max-height: 82vh;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85);
+    border: 1px solid var(--border-color);
+  }
+  .lightbox-caption {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin-top: 0.8rem;
+    text-align: center;
   }
 </style>

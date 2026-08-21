@@ -1,0 +1,48 @@
+---
+interface Props {
+  src: string;
+  alt?: string;
+  caption?: string;
+}
+
+const { src, alt = 'Research Screenshot', caption } = Astro.props;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+
+// Prepend base path if absolute root path is given and base is not already included
+let imageSrc = src;
+if (src.startsWith('/') && !src.startsWith(base)) {
+  imageSrc = `${base}${src.replace(/^\//, '')}`;
+}
+---
+
+<figure class="screenshot-figure">
+  <img src={imageSrc} alt={alt} title={caption || alt} class="post-screenshot" loading="lazy" />
+  {caption && <figcaption class="screenshot-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .screenshot-figure {
+    margin: 1.8rem 0;
+    text-align: center;
+  }
+  .post-screenshot {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    cursor: zoom-in;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    display: block;
+    margin: 0 auto;
+  }
+  .post-screenshot:hover {
+    border-color: var(--accent-color);
+  }
+  .screenshot-caption {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+</style>

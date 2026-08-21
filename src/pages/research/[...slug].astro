@@ -5,6 +5,8 @@ import Note from '../../components/Note.astro';
 import Warning from '../../components/Warning.astro';
 import Finding from '../../components/Finding.astro';
 import Command from '../../components/Command.astro';
+import Danger from '../../components/Danger.astro';
+import Error from '../../components/Error.astro';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -27,5 +29,6 @@ const { Content } = await post.render();
   image={post.data.image}
   rawContent={post.body}
 >
-  <Content components={{ Note, Warning, Finding, Command }} />
+  <Content components={{ Note, Warning, Finding, Command, Danger, Error }} />
 </PostLayout>
+

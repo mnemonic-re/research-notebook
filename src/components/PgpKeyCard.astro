@@ -1,0 +1,358 @@
+---
+import fs from 'fs';
+import path from 'path';
+
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const keyFilename = "Mnemonic mnemonics.xyz@gmail.com-(0x2260D1050F207BF6)-public.asc";
+const keyUrl = `${base}keys/${encodeURI(keyFilename)}`;
+
+const email = "mnemonics.xyz@gmail.com";
+const keyId = "0x2260D1050F207BF6";
+const fingerprint = "5AAB BE56 86F7 AF35 971D 07D7 2260 D105 0F20 7BF6";
+const rawFingerprint = "5AABBE5686F7AF35971D07D72260D1050F207BF6";
+
+const keyFilePath = path.join(process.cwd(), 'public', 'keys', keyFilename);
+let rawAsciiKey = "";
+try {
+  rawAsciiKey = fs.readFileSync(keyFilePath, 'utf-8');
+} catch (err) {
+  console.error("Failed to read PGP public key at build time:", err);
+}
+---
+
+<div class="pgp-card" id="pgp-public-key">
+  <div class="pgp-header">
+    <div class="pgp-icon-badge">🔑</div>
+    <div>
+      <h2 class="pgp-title">PGP Public Key</h2>
+      <p class="pgp-subtitle">
+        For encrypted email communications, security disclosures, and confidential research exchanges.
+      </p>
+    </div>
+  </div>
+
+  <div class="pgp-meta-grid">
+    <div class="pgp-meta-item">
+      <span class="pgp-meta-label">Associated Email</span>
+      <a href={`mailto:${email}`} class="pgp-meta-value email-link">{email}</a>
+    </div>
+    <div class="pgp-meta-item">
+      <span class="pgp-meta-label">Key ID</span>
+      <code class="pgp-meta-value mono">{keyId}</code>
+    </div>
+    <div class="pgp-meta-item">
+      <span class="pgp-meta-label">Algorithm</span>
+      <span class="pgp-meta-value">RSA 4096-bit</span>
+    </div>
+  </div>
+
+  <div class="pgp-fingerprint-section">
+    <div class="pgp-fp-header">
+      <span class="pgp-meta-label">PGP Fingerprint</span>
+      <button type="button" class="pgp-btn-sm" id="btn-copy-fp" data-fp={rawFingerprint}>
+        <span class="icon">📋</span> <span class="label">Copy Fingerprint</span>
+      </button>
+    </div>
+    <div class="pgp-fingerprint-box">
+      <code class="pgp-fp-code">{fingerprint}</code>
+    </div>
+  </div>
+
+  <div class="pgp-actions">
+    <a href={keyUrl} download={keyFilename} class="pgp-btn pgp-btn-primary">
+      <span class="btn-icon">📥</span> Download Public Key (.asc)
+    </a>
+    <button type="button" class="pgp-btn pgp-btn-secondary" id="btn-copy-key">
+      <span class="btn-icon">📋</span> <span class="label">Copy Public Key</span>
+    </button>
+  </div>
+
+  <details class="pgp-raw-details">
+    <summary class="pgp-raw-summary">View ASCII Armored Key Block</summary>
+    <div class="pgp-raw-body">
+      <pre id="pgp-raw-text" class="pgp-raw-pre">{rawAsciiKey}</pre>
+    </div>
+  </details>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnCopyFp = document.getElementById('btn-copy-fp');
+    const btnCopyKey = document.getElementById('btn-copy-key');
+    const rawPre = document.getElementById('pgp-raw-text');
+
+    if (btnCopyFp) {
+      btnCopyFp.addEventListener('click', async () => {
+        const fp = btnCopyFp.getAttribute('data-fp');
+        if (!fp) return;
+        try {
+          await navigator.clipboard.writeText(fp);
+          const label = btnCopyFp.querySelector('.label');
+          if (label) {
+            const orig = label.textContent;
+            label.textContent = '✓ Copied!';
+            btnCopyFp.classList.add('copied');
+            setTimeout(() => {
+              label.textContent = orig;
+              btnCopyFp.classList.remove('copied');
+            }, 2000);
+          }
+        } catch (err) {
+          console.error('Failed to copy fingerprint:', err);
+        }
+      });
+    }
+
+    if (btnCopyKey && rawPre) {
+      btnCopyKey.addEventListener('click', async () => {
+        try {
+          const keyText = rawPre.textContent || '';
+          await navigator.clipboard.writeText(keyText);
+          const label = btnCopyKey.querySelector('.label');
+          if (label) {
+            const orig = label.textContent;
+            label.textContent = '✓ Copied!';
+            btnCopyKey.classList.add('copied');
+            setTimeout(() => {
+              label.textContent = orig;
+              btnCopyKey.classList.remove('copied');
+            }, 2000);
+          }
+        } catch (err) {
+          console.error('Failed to copy PGP key:', err);
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  .pgp-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .pgp-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .pgp-icon-badge {
+    font-size: 1.6rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .pgp-title {
+    font-size: 1.35rem;
+    margin: 0 0 0.35rem 0;
+    color: var(--text-heading);
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .pgp-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .pgp-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .pgp-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .pgp-meta-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .pgp-meta-value {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    word-break: break-all;
+  }
+
+  .email-link {
+    font-family: var(--font-mono);
+    color: var(--accent-color);
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+  }
+
+  .pgp-fingerprint-section {
+    margin-bottom: 1.25rem;
+  }
+
+  .pgp-fp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+
+  .pgp-fingerprint-box {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+  }
+
+  .pgp-fp-code {
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    color: #58a6ff;
+    letter-spacing: 0.05em;
+    word-spacing: 0.2em;
+    word-break: break-all;
+    display: block;
+  }
+
+  .pgp-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .pgp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none !important;
+  }
+
+  .pgp-btn-primary {
+    background-color: var(--accent-color);
+    color: #0d1117 !important;
+    border: 1px solid var(--accent-color);
+  }
+
+  .pgp-btn-primary:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #0d1117 !important;
+  }
+
+  .pgp-btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+
+  .pgp-btn-secondary:hover {
+    background-color: var(--border-color);
+    color: var(--text-heading);
+  }
+
+  .pgp-btn-sm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pgp-btn-sm:hover {
+    color: var(--text-heading);
+    border-color: var(--accent-color);
+  }
+
+  .pgp-btn-sm.copied, .pgp-btn.copied {
+    border-color: #3fb950 !important;
+    color: #3fb950 !important;
+  }
+
+  .pgp-raw-details {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .pgp-raw-summary {
+    padding: 0.6rem 1rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    font-family: var(--font-mono);
+  }
+
+  .pgp-raw-summary:hover {
+    color: var(--text-primary);
+  }
+
+  .pgp-raw-body {
+    border-top: 1px solid var(--border-color);
+    padding: 1rem;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .pgp-raw-pre {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  @media (max-width: 600px) {
+    .pgp-card {
+      padding: 1rem;
+    }
+    .pgp-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .pgp-btn {
+      justify-content: center;
+    }
+    .pgp-fp-code {
+      font-size: 0.82rem;
+    }
+  }
+</style>

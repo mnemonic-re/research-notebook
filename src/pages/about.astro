@@ -1,5 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const contactUrl = `${base}contact/`;
 ---
 
 <BaseLayout title="About | Cybersecurity Research Notebook">
@@ -21,6 +24,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <h2>Disclaimer</h2>
     <p>
       All content published on this site consists of personal security research notes, technical tutorials, and open methodology observations performed in isolated local lab environments.
+    </p>
+
+    <h2>Get in Touch</h2>
+    <p>
+      Need to reach out, submit a security disclosure, or send encrypted correspondence? Visit the <a href={contactUrl}>Contact & PGP Key</a> page.
     </p>
   </article>
 </BaseLayout>

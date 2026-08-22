@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PgpKeyCard from '../components/PgpKeyCard.astro';
+---
+
+<BaseLayout title="Contact & PGP Key | Cybersecurity Research Notebook" description="Contact information and PGP Public Key for encrypted security disclosures and research inquiries.">
+  <article class="contact-page">
+    <h1>Contact Information</h1>
+    <p>
+      For vulnerability disclosures, security research inquiries, or confidential communication, use the contact details and PGP key below.
+    </p>
+
+    <h2>Email Address</h2>
+    <p>
+      Direct Email: <a href="mailto:mnemonics.xyz@gmail.com" class="email-highlight">mnemonics.xyz@gmail.com</a>
+    </p>
+
+    <PgpKeyCard />
+  </article>
+</BaseLayout>
+
+<style>
+  .contact-page {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .contact-page h2 {
+    margin-top: 1.8rem;
+  }
+  .email-highlight {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--accent-color);
+  }
+</style>

@@ -15,11 +15,27 @@ draft: false
   [DEMO CONTENT] This article is temporary sample content generated for local site structure testing.
 </div>
 
+
+<Details summary="Click to expand / collapse full log trace...">
+
+Insert long stack trace, Ida decompilation, or raw output here...
+
+```text
+0:000> k
+# Child-SP          RetAddr           Call Site
+00 00000000`0012f450 00007ff6`8b921045 nt!IopSynchronousServiceTail+0x1a0
+01 00000000`0012f4d0 00007ff6`8b921890 target_driver!DriverEntry+0x45
+```
+
+</Details>
+
+
 ## Introduction
 
 Symbolic information provided by Microsoft Public Symbol Server provides critical context during static binary analysis. Function names, global structure definitions, and type signatures reduce time spent reverse engineering standard framework boilerplate.
 
 ```c
+// Test C / Driver Code
 NTSTATUS DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
@@ -35,6 +51,34 @@ NTSTATUS DriverEntry(
 }
 ```
 
+```python
+# Python Program to find the area of triangle
+
+a = 5
+b = 6
+c = 7
+
+# calculate the semi-perimeter
+s = (a + b + c) / 2
+
+# calculate the area
+area = (s*(s-a)*(s-b)*(s-c)) ** 0.5
+print('The area of the triangle is %0.2f' %area)
+```
+
+```asm
+; x64dbg Assembly Inspection
+mov rax, rcx
+push rbp
+mov rbp, rsp
+sub rsp, 0x20
+call 0x140001000
+cmp eax, 0
+je 0x140001050
+jmp 0x140001080
+pop rbp
+ret
+```
 
 <Danger>
 Insert critical danger or high-severity advisory here...
@@ -48,3 +92,12 @@ Configuring `_NT_SYMBOL_PATH` in the system environment enables IDA Pro and WinD
 <Finding>
 Loading matching symbols instantly reconstructs vtable pointers and major function dispatch routines in IDA Pro.
 </Finding>
+
+
+<HexDump title="MEMORY DUMP">
+```text
+00000000  48 89 5c 24 08 48 89 70  10 48 89 7a 18 4c 89 60  |H.\$.H.p.H.z.L.`|
+00000010  20 57 41 54 41 55 41 56  41 57 48 83 ec 30 48 8b  | WATAUAVAWH..3H.|
+00000020  05 45 23 01 00 48 33 c4  48 89 44 24 20 4c 8b f9  |.E#..H3.H.D$ L..|
+```
+</HexDump>

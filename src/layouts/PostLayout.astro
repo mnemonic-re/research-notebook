@@ -63,6 +63,140 @@ const readingTime = rawContent ? getReadingTime(rawContent) : '';
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    // 1. Attach Copy Buttons to all code blocks
+    const preBlocks = document.querySelectorAll('.post-content pre');
+    preBlocks.forEach((pre) => {
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-code-btn';
+      copyBtn.setAttribute('type', 'button');
+      copyBtn.setAttribute('aria-label', 'Copy code to clipboard');
+      copyBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span>Copy</span>
+      `;
+
+      copyBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const codeEl = pre.querySelector('code');
+        const textToCopy = codeEl ? codeEl.innerText : (pre as HTMLElement).innerText;
+
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Copied!</span>
+          `;
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = `
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy</span>
+            `;
+          }, 2000);
+        } catch (err) {
+          console.error('Copy failed:', err);
+        }
+      });
+
+      pre.appendChild(copyBtn);
+    });
+
+    // 2. x64dbg Assembly Custom Syntax Highlighting
+    const asmBlocks = document.querySelectorAll('.post-content pre[data-language="asm"], .post-content pre[data-language="x64asm"], .post-content pre[data-language="nasm"], .post-content pre[data-language="masm"], .post-content pre[data-language="assembly"], .post-content pre code[class*="language-asm"], .post-content pre code[class*="language-x64asm"]');
+    
+    const registersRegex = /^(RAX|RBX|RCX|RDX|RSI|RDI|RBP|RSP|R8|R9|R10|R11|R12|R13|R14|R15|EAX|EBX|ECX|EDX|ESI|EDI|EBP|ESP|AX|BX|CX|DX|AL|BL|CL|DL|R8D|R9D|R10D|R11D|R12D|R13D|R14D|R15D|R8W|R9W|R10W|R11W|R12W|R13W|R14W|R15W|R8B|R9B|R10B|R11B|R12B|R13B|R14B|R15B|DI|SI|BP|SP)$/i;
+
+    const escapeHtml = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    asmBlocks.forEach((block) => {
+      const preEl = block.tagName.toLowerCase() === 'pre' ? block as HTMLPreElement : block.closest('pre');
+      const codeEl = block.tagName.toLowerCase() === 'code' ? block as HTMLElement : (block.querySelector('code') || block) as HTMLElement;
+
+      if (preEl) {
+        preEl.style.backgroundColor = '#161616';
+        preEl.style.borderColor = '#333333';
+      }
+
+      const rawText = codeEl.innerText || codeEl.textContent || '';
+      const lines = rawText.split('\n');
+
+      const highlightedLines = lines.map(line => {
+        if (!line.trim()) return line;
+
+        let commentIdx = line.indexOf(';');
+        let codePart = commentIdx !== -1 ? line.substring(0, commentIdx) : line;
+        let commentPart = commentIdx !== -1 ? `<span style="color: #A6E22E; font-style: italic;">${escapeHtml(line.substring(commentIdx))}</span>` : '';
+
+        const tokenRegex = /(\s+)|(\b(?:QWORD|DWORD|WORD|BYTE)\s+PTR\b)|(\b(?:SS|DS|CS|ES|FS|GS):)|(\[|\])|(0x[0-9a-fA-F]+|[0-9A-Fa-f]{4,16}h|\b\d+\b)|([a-zA-Z0-9_]+)|([^\s\w]+)/gi;
+
+        let match;
+        let isFirstWord = true;
+        let html = '';
+
+        while ((match = tokenRegex.exec(codePart)) !== null) {
+          const [full, whitespace, ptrSize, segPrefix, bracket, number, word, punct] = match;
+
+          if (whitespace) {
+            html += whitespace;
+          } else if (ptrSize) {
+            html += `<span style="color: #FFFBF0; font-weight: 600;">${escapeHtml(ptrSize)}</span>`;
+          } else if (segPrefix) {
+            html += `<span style="color: #00AA61; font-weight: bold;">${escapeHtml(segPrefix)}</span>`;
+          } else if (bracket) {
+            html += `<span style="color: #00AA61; font-weight: bold;">${escapeHtml(bracket)}</span>`;
+          } else if (number) {
+            html += `<span style="color: #F27709;">${escapeHtml(number)}</span>`;
+          } else if (word) {
+            const uWord = word.toUpperCase();
+            if (isFirstWord) {
+              isFirstWord = false;
+              let color = '#FFFBF0'; // Default cream/white for MOV, LEA, SUB, XOR, AND, etc.
+              let weight = '600';
+
+              if (uWord === 'CALL') {
+                color = '#00FFFF'; // Cyan
+                weight = 'bold';
+              } else if (['JE', 'JNE', 'JZ', 'JNZ', 'JA', 'JAE', 'JB', 'JBE', 'JG', 'JGE', 'JL', 'JLE', 'JS', 'JNS', 'TEST', 'CMP'].includes(uWord)) {
+                color = '#FF0000'; // Bright Red
+                weight = 'bold';
+              } else if (uWord === 'JMP') {
+                color = '#FF00FF'; // Fuchsia / Magenta
+                weight = 'bold';
+              } else if (['PUSH', 'POP', 'RET', 'RETN'].includes(uWord)) {
+                color = '#FFFF00'; // Yellow
+                weight = 'bold';
+              } else if (['NOP', 'INT3'].includes(uWord)) {
+                color = '#A8A8A8'; // Gray
+                weight = 'normal';
+              }
+
+              html += `<span style="color: ${color}; font-weight: ${weight};">${escapeHtml(word)}</span>`;
+            } else if (registersRegex.test(word)) {
+              html += `<span style="color: #55AAFF;">${escapeHtml(word)}</span>`;
+            } else {
+              html += escapeHtml(word);
+            }
+          } else if (punct) {
+            html += escapeHtml(punct);
+          }
+        }
+
+        return html + commentPart;
+      });
+
+      codeEl.innerHTML = highlightedLines.join('\n');
+    });
+
+    // 3. Lightbox setup
     const lightbox = document.getElementById('screenshot-lightbox');
     const lightboxImg = document.getElementById('lightbox-image') as HTMLImageElement;
     const lightboxCaption = document.getElementById('lightbox-caption');
@@ -70,7 +204,6 @@ const readingTime = rawContent ? getReadingTime(rawContent) : '';
 
     if (!lightbox || !lightboxImg || !lightboxCaption || !closeBtn) return;
 
-    // Attach zoom handler to all images inside article content
     const images = document.querySelectorAll('.post-content img');
 
     images.forEach((img) => {

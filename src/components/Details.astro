@@ -1,0 +1,16 @@
+---
+interface Props {
+  title?: string;
+  summary?: string;
+}
+
+const { title, summary = "Click to expand / collapse details..." } = Astro.props;
+const summaryText = title || summary;
+---
+
+<details class="custom-details">
+  <summary class="custom-details-summary">{summaryText}</summary>
+  <div class="custom-details-content">
+    <slot />
+  </div>
+</details>

@@ -260,11 +260,11 @@ main {
 }
 .callout-command .callout-title { color: var(--callout-command-border); }
 
-.callout-danger {
+.callout-critical {
   background-color: var(--callout-danger-bg);
   border-color: var(--callout-danger-border);
 }
-.callout-danger .callout-title { color: var(--callout-danger-border); }
+.callout-critical .callout-title { color: var(--callout-danger-border); }
 
 /* Custom Collapsible Details Element */
 .custom-details {

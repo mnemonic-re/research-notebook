@@ -32,7 +32,36 @@ Insert long stack trace, Ida decompilation, or raw output here...
 
 ## Introduction
 
-Symbolic information provided by Microsoft Public Symbol Server provides critical context during static binary analysis. Function names, global structure definitions, and type signatures reduce time spent reverse engineering standard framework boilerplate.
+Symbolic information provided by Microsoft Public Symbol Server provides critical context during static binary analysis. Function names, global structure definitions, and type signatures reduce time spent reverse engineering standard framework boilerplate. Press <Kbd>F5</Kbd> in IDA Pro to generate decompiled C code or <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>B</Kbd> in WinDbg.
+
+
+<Timeline title="Execution & Attack Flow">
+  <div class="timeline-step">
+    <span class="step-badge">Step 1</span>
+    <span class="step-text">User-mode app sends DeviceIoControl() with controlled input size.</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">Step 2</span>
+    <span class="step-text">Driver handler omits buffer validation check.</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">Step 3</span>
+    <span class="step-text">Pool buffer overflow overwrites adjacent header.</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">Step 4</span>
+    <span class="step-text">Arbitrary kernel write achieved -> System token stolen.</span>
+  </div>
+</Timeline>
+
+
+<SampleCard 
+  name="vulnerable_driver.sys" 
+  type="Kernel Driver (.sys)" 
+  size="142.5 KB" 
+  hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" 
+/>
+
 
 ```c
 // Test C / Driver Code

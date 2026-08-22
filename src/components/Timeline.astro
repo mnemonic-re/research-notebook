@@ -1,0 +1,14 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = "Execution & Attack Flow" } = Astro.props;
+---
+
+<div class="custom-timeline">
+  {title && <div class="timeline-title">{title}</div>}
+  <div class="timeline-steps">
+    <slot />
+  </div>
+</div>

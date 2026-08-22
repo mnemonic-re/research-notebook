@@ -1,0 +1,44 @@
+---
+interface Props {
+  name: string;
+  size?: string;
+  hash?: string;
+  type?: string;
+  downloadUrl?: string;
+}
+
+const {
+  name,
+  size = "N/A",
+  hash = "",
+  type = "Research Binary / Artifact",
+  downloadUrl = "#"
+} = Astro.props;
+---
+
+<div class="sample-card">
+  <div class="sample-card-header">
+    <div class="sample-card-info">
+      <div class="sample-icon">📎</div>
+      <div>
+        <div class="sample-name">{name}</div>
+        <div class="sample-meta">
+          <span class="sample-type">{type}</span>
+          <span class="meta-dot">•</span>
+          <span class="sample-size">{size}</span>
+        </div>
+      </div>
+    </div>
+    {downloadUrl !== "#" && (
+      <a href={downloadUrl} class="sample-download-btn" download>
+        ⬇ Download
+      </a>
+    )}
+  </div>
+  {hash && (
+    <div class="sample-hash-box">
+      <span class="hash-label">SHA256:</span>
+      <code class="hash-value">{hash}</code>
+    </div>
+  )}
+</div>

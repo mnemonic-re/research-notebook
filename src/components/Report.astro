@@ -1,0 +1,121 @@
+---
+interface Props {
+  title?: string;
+  expandable?: boolean;
+  expand?: boolean;
+  summary?: string;
+}
+
+const {
+  title = "EXECUTIVE RESEARCH REPORT",
+  expandable = true,
+  expand = false,
+  summary,
+} = Astro.props;
+
+const isExpandable = expandable || expand;
+// If summary is default or generic, construct title-aware summary label
+const summaryHint = summary && !summary.includes("full report...") 
+  ? summary 
+  : "Click to expand / collapse report...";
+---
+
+{isExpandable ? (
+  <details class="custom-details report-details">
+    <summary class="custom-details-summary report-summary">
+      <span class="report-summary-title">📊 <strong>[{title}]</strong></span>
+      <span class="report-summary-hint">{summaryHint}</span>
+    </summary>
+    <div class="custom-details-content">
+      <div class="callout callout-report report-container">
+        <div class="callout-title report-title-bar">
+          <span class="report-icon">📊</span>
+          <span>[{title}]</span>
+        </div>
+        <div class="callout-content report-content">
+          <slot />
+        </div>
+      </div>
+    </div>
+  </details>
+) : (
+  <div class="callout callout-report report-container">
+    <div class="callout-title report-title-bar">
+      <span class="report-icon">📊</span>
+      <span>[{title}]</span>
+    </div>
+    <div class="callout-content report-content">
+      <slot />
+    </div>
+  </div>
+)}
+
+<style>
+  .report-details {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 1.4em;
+    padding: 0.6rem 0.85rem;
+  }
+  .report-summary {
+    color: var(--accent-hover);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .report-summary-title {
+    color: #a371f7;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+  }
+  .report-summary-hint {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: normal;
+  }
+  .report-container {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #a371f7;
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .report-title-bar {
+    font-family: var(--font-mono);
+    color: #a371f7;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .report-content {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+  .report-content :global(p) {
+    margin-bottom: 0.75rem;
+  }
+  .report-content :global(ul), .report-content :global(ol) {
+    margin-bottom: 0.75rem;
+    padding-left: 1.4rem;
+  }
+  .report-content :global(pre) {
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+</style>

@@ -306,7 +306,7 @@ main {
 
 /* Custom WinDbg Callout & Syntax Highlighting Styling */
 .callout-windbg {
-  background-color: #0b0e14 !important;
+  background-color: var(--bg-secondary) !important;
   border-color: #238636 !important;
   font-family: var(--font-mono);
 }
@@ -326,6 +326,16 @@ main {
   border: none !important;
   padding: 0 !important;
   margin: 0 !important;
+}
+
+/* Custom Report Callout Styling */
+.callout-report {
+  background-color: var(--bg-secondary) !important;
+  border-color: #a371f7 !important;
+}
+
+.callout-report .callout-title {
+  color: #a371f7 !important;
 }
 
 /* Custom Timeline & Step Flow Component */

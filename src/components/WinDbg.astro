@@ -14,12 +14,17 @@ const {
 } = Astro.props;
 
 const isExpandable = expandable || expand;
-const summaryText = summary || title || "Click to expand WinDbg trace...";
+const summaryHint = summary && !summary.includes("full WinDbg session log...") && summary !== title
+  ? summary 
+  : "Click to expand / collapse trace log...";
 ---
 
 {isExpandable ? (
   <details class="custom-details windbg-details">
-    <summary class="custom-details-summary">{summaryText}</summary>
+    <summary class="custom-details-summary windbg-summary">
+      <span class="windbg-summary-title">🐞 <strong>[{title}]</strong></span>
+      <span class="windbg-summary-hint">{summaryHint}</span>
+    </summary>
     <div class="custom-details-content">
       <div class="callout callout-command callout-windbg windbg-container">
         <div class="callout-title">
@@ -41,4 +46,24 @@ const summaryText = summary || title || "Click to expand WinDbg trace...";
     </div>
   </div>
 )}
+
+<style>
+  .windbg-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .windbg-summary-title {
+    color: #3fb950;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+  }
+  .windbg-summary-hint {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: normal;
+  }
+</style>
+
 

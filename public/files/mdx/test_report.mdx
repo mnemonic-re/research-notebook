@@ -1,0 +1,27 @@
+# GigaApp_Final_Report.md
+
+## 1. Executive Overview
+- **Target Name**: `GigaApp.exe`
+- **Objective**: Reverse-engineer `GigaApp.exe` via binary disassembly analysis to determine the valid numeric key for the name `nemotron`.
+- **Result**: Successfully disassembled the binary, extracted the hashing routine, and computed the correct key: **3119252081142**.
+
+## 2. Target Specifications
+- **File Type**: Win32 Console Executable (PE32+)
+- **Architecture**: x64
+
+## 3. Technical Reverse Engineering Analysis
+Using Capstone disassembly of the `.text` section of `GigaApp.exe`:
+- Located key generation loop at `0x140001370`.
+- Loop logic:
+  1. Multiply accumulator `rax` by `0x1f` (31 decimal) (`imul rax, rax, 0x1f`).
+  2. Load character byte from name buffer (`movsx rcx, byte ptr [r9]`).
+  3. Add character to accumulator (`add rax, rcx`).
+  4. Repeat for length of string.
+  5. Ensure result is positive (`jns` / `neg rcx`).
+  6. Compare calculated hash with user-supplied key (`cmp qword ptr [rsp + 0x40], rcx`).
+
+## 4. Key Calculation for "nemotron"
+- **Key**: `3119252081142`
+
+## 5. Automated Solver / Artifacts
+- Binary analysis and solver script located at: `analysis/GigaApp/scripts/keygen_nemotron.py`

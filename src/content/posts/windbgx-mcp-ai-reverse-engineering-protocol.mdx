@@ -9,7 +9,7 @@ tags:
   - AI
   - Windows
   - Kernel
-category: "Tools"
+category: "General"
 draft: false
 ---
 
@@ -184,7 +184,50 @@ The AI agent was strictly restricted from reading source files or repository cod
 <b>Benchmark Result</b>: The AI agent completed full assembly disassembly, algorithm extraction, key calculation for "nemotron" (<code>3119252081142</code>), scratchpad logging, and final report generation in under 10 seconds.
 </Finding>
 
-<WinDbg title="GigaApp Executive Final Report (GigaApp_Final_Report.md)" expandable={true} summary="▶ Click to expand full AI-generated executive report (GigaApp_Final_Report.md)...">
+
+<Report title="AI Reverse Engineering Scratchpad" expandable={true} summary="Click to view full step-by-step assembly scratchpad log...">
+
+# Scratchpad: GigaApp.exe Binary Reverse Engineering
+
+## Target Information
+- **Binary**: `GigaApp.exe`
+- **Architecture**: x64 PE32+ (Console Application)
+- **Target Name**: `nemotron`
+
+## Disassembly Analysis (`.text` Section)
+Disassembly of the key validation function (centered around `0x140001370`):
+
+```assembly
+0x140001370:	imul	rax, rax, 0x1f     ; key = key * 31
+0x140001374:	movsx	rcx, byte ptr [r9] ; fetch character byte
+0x140001378:	add	rax, rcx           ; key += char
+0x14000137b:	inc	r9                 ; next pointer
+0x14000137e:	cmp	r9, r8             ; check end of string
+0x140001381:	jne	0x140001370        ; loop
+0x140001383:	mov	rcx, rax
+0x140001386:	test	rax, rax
+0x140001389:	jns	0x14000138e        ; if positive
+0x14000138b:	neg	rcx                ; ensure positive (key = -key)
+0x14000138e:	cmp	qword ptr [rsp + 0x40], rcx ; compare against user input key
+```
+
+## Calculation Trace for "nemotron"
+Applying the algorithm derived from the binary:
+- n (110) -> 110
+- e (101) -> 3511
+- m (109) -> 108950
+- o (111) -> 3377561
+- t (116) -> 104704507
+- r (114) -> 3245839831
+- o (111) -> 100621034872
+- n (110) -> 3119252081142
+
+## Result
+Key for `nemotron`: **3119252081142**
+
+</Report>
+
+<Report title="GigaApp Executive Final Report" expandable={true} summary="Click to view full AI-generated executive report (GigaApp_Final_Report.md)...">
 
 ### 1. Executive Overview
 - **Target Name**: `GigaApp.exe`
@@ -212,7 +255,7 @@ Using Capstone disassembly of the `.text` section of `GigaApp.exe`:
 ### 5. Automated Solver / Artifacts
 - Binary analysis and solver script located at: `analysis/GigaApp/scripts/keygen_nemotron.py`
 
-</WinDbg>
+</Report>
 
 ---
 

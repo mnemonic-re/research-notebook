@@ -12,6 +12,9 @@ interface NoteItem {
 
 const notes: NoteItem[] = notesData || [];
 
+// Extract unique categories for filter pills
+const categories = Array.from(new Set(notes.map(n => n.category).filter(Boolean))) as string[];
+
 // Simple helper to render codeblocks and paragraphs in note content
 function renderNoteContent(text: string) {
   if (!text) return '';
@@ -37,52 +40,504 @@ function renderNoteContent(text: string) {
     <p>Short technical snippets, debugger command cheatsheets, and temporary observations.</p>
   </div>
 
-  <div class="notes-container">
+  <!-- Interactive Search & Filtering Controls -->
+  <div class="search-section">
+    <div class="search-input-container">
+      <div class="search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        id="notes-search-input" 
+        placeholder="Type to filter or search (e.g. IDA, KDNET, PDB, WinDbg)..." 
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="button" id="search-clear-btn" class="clear-btn" aria-label="Clear search" style="display: none;">✕</button>
+      <div class="search-shortcut"><kbd>/</kbd></div>
+
+      <!-- Live Autocomplete Suggestion Dropdown -->
+      <div id="autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;">
+        <div class="dropdown-header">Matching Notes</div>
+        <ul id="autocomplete-list"></ul>
+      </div>
+    </div>
+
+    <!-- Category Filter Pills & Counter -->
+    <div class="filter-bar">
+      <div class="category-pills">
+        <button class="pill-btn active" data-category="all">All ({notes.length})</button>
+        {categories.map(cat => (
+          <button class="pill-btn" data-category={cat}>{cat}</button>
+        ))}
+      </div>
+      <div class="search-counter" id="search-counter">
+        Showing <span id="visible-count">{notes.length}</span> of {notes.length} notes
+      </div>
+    </div>
+  </div>
+
+  <div class="notes-container" id="notes-list">
     {notes.length === 0 ? (
       <p class="empty-state">No notes added yet.</p>
     ) : (
       notes.map((note) => (
-        <div class="note-item" id={note.id}>
+        <div 
+          class="note-item" 
+          id={note.id}
+          data-title={note.title.toLowerCase()}
+          data-category={note.category ? note.category.toLowerCase() : ''}
+          data-content={note.content.toLowerCase()}
+        >
           <div class="note-header">
             <span class="note-date">{note.date}</span>
             {note.category && <span class="note-category">{note.category}</span>}
           </div>
-          <h3>{note.title}</h3>
+          <h3 class="note-title">{note.title}</h3>
           <div class="note-body" set:html={renderNoteContent(note.content)} />
         </div>
       ))
     )}
+
+    <!-- Empty Search State -->
+    <div id="no-search-results" class="no-results-card" style="display: none;">
+      <div class="no-results-icon">🔍</div>
+      <h3>No notes matching "<span id="query-term"></span>"</h3>
+      <p>Try searching for debugger terms like <code>KDNET</code>, <code>Symbol Path</code>, <code>IDA</code>, or <code>bcdedit</code>.</p>
+      <button id="reset-search-btn" class="reset-btn">Reset Search</button>
+    </div>
   </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('notes-search-input');
+      const clearBtn = document.getElementById('search-clear-btn');
+      const dropdown = document.getElementById('autocomplete-dropdown');
+      const dropdownList = document.getElementById('autocomplete-list');
+      const categoryBtns = document.querySelectorAll('.pill-btn');
+      const noteItems = document.querySelectorAll('.note-item');
+      const visibleCountEl = document.getElementById('visible-count');
+      const noResultsEl = document.getElementById('no-search-results');
+      const queryTermEl = document.getElementById('query-term');
+      const resetBtn = document.getElementById('reset-search-btn');
+
+      if (!searchInput) return;
+
+      let activeCategory = 'all';
+
+      // Parse note data for client-side search indexing
+      const indexedNotes = Array.from(noteItems).map(item => ({
+        id: item.getAttribute('id'),
+        title: item.querySelector('.note-title')?.textContent || '',
+        category: item.getAttribute('data-category') || '',
+        content: item.getAttribute('data-content') || '',
+        element: item
+      }));
+
+      // Focus hotkey ('/' key)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+          closeDropdown();
+        }
+      });
+
+      // Real-time filter & autocomplete trigger
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        
+        if (query.length > 0) {
+          clearBtn.style.display = 'block';
+          renderAutocomplete(query);
+        } else {
+          clearBtn.style.display = 'none';
+          closeDropdown();
+        }
+        
+        applyFilters();
+      });
+
+      searchInput.addEventListener('focus', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length > 0) {
+          renderAutocomplete(query);
+        }
+      });
+
+      // Close dropdown on outside click
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-input-container')) {
+          closeDropdown();
+        }
+      });
+
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        closeDropdown();
+        applyFilters();
+        searchInput.focus();
+      });
+
+      resetBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        closeDropdown();
+        setActiveCategory('all');
+        applyFilters();
+      });
+
+      // Category Pill Click
+      categoryBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const category = btn.getAttribute('data-category');
+          setActiveCategory(category);
+          applyFilters();
+        });
+      });
+
+      function setActiveCategory(cat) {
+        activeCategory = cat;
+        categoryBtns.forEach(b => {
+          if (b.getAttribute('data-category') === cat) {
+            b.classList.add('active');
+          } else {
+            b.classList.remove('active');
+          }
+        });
+      }
+
+      function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        indexedNotes.forEach(note => {
+          const matchesCategory = activeCategory === 'all' || note.category === activeCategory.toLowerCase();
+          const matchesQuery = !query || 
+            note.title.toLowerCase().includes(query) || 
+            note.category.includes(query) || 
+            note.content.includes(query);
+
+          if (matchesCategory && matchesQuery) {
+            note.element.style.display = 'block';
+            visibleCount++;
+          } else {
+            note.element.style.display = 'none';
+          }
+        });
+
+        visibleCountEl.textContent = visibleCount;
+
+        if (visibleCount === 0) {
+          noResultsEl.style.display = 'block';
+          queryTermEl.textContent = searchInput.value.trim() || activeCategory;
+        } else {
+          noResultsEl.style.display = 'none';
+        }
+      }
+
+      function renderAutocomplete(query) {
+        const matches = indexedNotes.filter(note => {
+          const matchesCategory = activeCategory === 'all' || note.category === activeCategory.toLowerCase();
+          const qMatches = note.title.toLowerCase().includes(query) || 
+                           note.category.includes(query) || 
+                           note.content.includes(query);
+          return matchesCategory && qMatches;
+        });
+
+        if (matches.length === 0) {
+          closeDropdown();
+          return;
+        }
+
+        dropdownList.innerHTML = '';
+        matches.forEach(note => {
+          const li = document.createElement('li');
+          li.className = 'autocomplete-item';
+          
+          // Highlight matching title substring
+          const title = note.title;
+          const lowerTitle = title.toLowerCase();
+          const matchIndex = lowerTitle.indexOf(query);
+          
+          let highlightedTitle = title;
+          if (matchIndex !== -1) {
+            const before = title.substring(0, matchIndex);
+            const matchedText = title.substring(matchIndex, matchIndex + query.length);
+            const after = title.substring(matchIndex + query.length);
+            highlightedTitle = `${before}<mark>${matchedText}</mark>${after}`;
+          }
+
+          li.innerHTML = `
+            <div class="autocomplete-title">${highlightedTitle}</div>
+            <div class="autocomplete-meta">${note.category.toUpperCase() || 'NOTE'}</div>
+          `;
+
+          li.addEventListener('click', () => {
+            closeDropdown();
+            // Scroll to element and highlight
+            note.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            note.element.classList.add('highlight-flash');
+            setTimeout(() => {
+              note.element.classList.remove('highlight-flash');
+            }, 1800);
+          });
+
+          dropdownList.appendChild(li);
+        });
+
+        dropdown.style.display = 'block';
+      }
+
+      function closeDropdown() {
+        dropdown.style.display = 'none';
+      }
+    });
+  </script>
 </BaseLayout>
 
 <style>
   .page-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
   }
+
+  /* Search Bar Section */
+  .search-section {
+    margin-bottom: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .search-input-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  #notes-search-input {
+    width: 100%;
+    padding: 0.75rem 4rem 0.75rem 2.6rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-heading);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  #notes-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  }
+
+  .clear-btn {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+  }
+
+  .clear-btn:hover {
+    color: var(--text-heading);
+  }
+
+  .search-shortcut {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .search-shortcut kbd {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+    color: var(--text-muted);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+
+  /* Live Autocomplete Dropdown */
+  .autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--accent-color);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .dropdown-header {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 0.5rem 0.85rem;
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  #autocomplete-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .autocomplete-item {
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.12s ease;
+  }
+
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+
+  .autocomplete-item:hover {
+    background-color: var(--bg-tertiary);
+  }
+
+  .autocomplete-title {
+    font-size: 0.9rem;
+    color: var(--text-heading);
+    font-weight: 500;
+  }
+
+  .autocomplete-title mark {
+    background-color: rgba(88, 166, 255, 0.25);
+    color: var(--accent-hover);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  .autocomplete-meta {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    background-color: rgba(88, 166, 255, 0.1);
+    color: var(--accent-color);
+    border: 1px solid rgba(88, 166, 255, 0.2);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+  }
+
+  /* Filter Bar & Pills */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .pill-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pill-btn:hover {
+    color: var(--text-heading);
+    border-color: var(--text-muted);
+  }
+
+  .pill-btn.active {
+    background-color: rgba(88, 166, 255, 0.15);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    font-weight: 600;
+  }
+
+  .search-counter {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* Notes List Styling */
   .notes-container {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
   }
+
   .note-item {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     padding: 1.25rem;
     border-radius: 6px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
+
+  .note-item.highlight-flash {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 16px rgba(88, 166, 255, 0.35);
+  }
+
   .note-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.4rem;
   }
+
   .note-date {
     font-family: var(--font-mono);
     font-size: 0.8rem;
     color: var(--text-muted);
   }
+
   .note-category {
     font-family: var(--font-mono);
     font-size: 0.72rem;
@@ -92,18 +547,22 @@ function renderNoteContent(text: string) {
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
   }
+
   .note-item h3 {
     margin-top: 0.2rem;
     margin-bottom: 0.6rem;
     color: var(--text-heading);
   }
+
   .note-body {
     font-size: 0.95rem;
     color: var(--text-primary);
   }
+
   .note-body :global(p) {
     margin-bottom: 0.6rem;
   }
+
   .note-body :global(pre) {
     background-color: var(--code-bg);
     border: 1px solid var(--border-color);
@@ -115,8 +574,51 @@ function renderNoteContent(text: string) {
     margin-top: 0.5rem;
     margin-bottom: 0.6rem;
   }
+
+  .no-results-card {
+    background-color: var(--bg-secondary);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .no-results-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .no-results-card h3 {
+    color: var(--text-heading);
+    margin-top: 0.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .no-results-card p {
+    font-size: 0.9rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .reset-btn {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    background-color: rgba(88, 166, 255, 0.15);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    padding: 0.4rem 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .reset-btn:hover {
+    background-color: rgba(88, 166, 255, 0.25);
+  }
+
   .empty-state {
     color: var(--text-muted);
     font-style: italic;
   }
 </style>
+

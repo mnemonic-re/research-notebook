@@ -1,35 +1,430 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PgpKeyCard from '../components/PgpKeyCard.astro';
+
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const keyFilename = "Mnemonic mnemonics.xyz@gmail.com-(0x2260D1050F207BF6)-public.asc";
 ---
 
-<BaseLayout title="Contact & PGP Key | Cybersecurity Research Notebook" description="Contact information and PGP Public Key for encrypted security disclosures and research inquiries.">
+<BaseLayout title="Contact & PGP Key | Cybersecurity Research Notebook" description="Contact information, PGP Public Key, and client-side encrypted message suite for security disclosures.">
   <article class="contact-page">
-    <h1>Contact Information</h1>
-    <p>
-      For vulnerability disclosures, security research inquiries, or confidential communication, use the contact details and PGP key below.
-    </p>
+    <header class="contact-header">
+      <h1>Contact & Disclosure Protocol</h1>
+      <p class="contact-intro">
+        Direct channel for vulnerability disclosures, security research inquiries, kernel driver analysis, or confidential communications.
+      </p>
+    </header>
 
-    <h2>Email Address</h2>
-    <p>
-      Direct Email: <a href="mailto:mnemonics.xyz@gmail.com" class="email-highlight">mnemonics.xyz@gmail.com</a>
-    </p>
+    <!-- Disclosure Protocol SLA Grid -->
+    <div class="protocol-grid">
+      <div class="protocol-card">
+        <span class="protocol-label">Direct Email</span>
+        <a href="mailto:mnemonics.xyz@gmail.com" class="protocol-value email-link">mnemonics.xyz@gmail.com</a>
+      </div>
+      <div class="protocol-card">
+        <span class="protocol-label">Response SLA</span>
+        <span class="protocol-value status-badge">&lt; 24h &ndash; 48h</span>
+      </div>
+      <div class="protocol-card">
+        <span class="protocol-label">Security Specs</span>
+        <span class="protocol-value">RSA 4096-bit / Zero-Trust</span>
+      </div>
+    </div>
 
+    <!-- Live In-Browser PGP Encryptor Card -->
+    <section class="encryptor-section">
+      <div class="encryptor-card">
+        <div class="encryptor-header">
+          <div class="encryptor-icon">🔒</div>
+          <div>
+            <h2>In-Browser PGP Message Encryptor</h2>
+            <p class="encryptor-sub">Encrypt sensitive message text client-side using OpenPGP before emailing. Plaintext never leaves your browser.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="plaintext-input" class="form-label">Plaintext Message / Disclosure Details</label>
+          <textarea id="plaintext-input" class="encryptor-textarea" rows="4" placeholder="Type confidential disclosure, bug details, or research inquiry here..."></textarea>
+        </div>
+
+        <div class="encryptor-actions">
+          <button type="button" class="btn btn-encrypt" id="btn-encrypt-pgp">
+            <span class="btn-icon">⚡</span> <span class="btn-text">Encrypt with Public Key</span>
+          </button>
+        </div>
+
+        <div id="pgp-output-wrapper" class="pgp-output-wrapper hidden">
+          <label for="pgp-output-text" class="form-label">Encrypted PGP ASCII Armor Message</label>
+          <textarea id="pgp-output-text" class="encryptor-textarea armor-textarea" rows="7" readonly></textarea>
+          
+          <div class="output-actions">
+            <button type="button" class="btn btn-copy" id="btn-copy-armor">
+              <span class="btn-icon">📋</span> <span class="label">Copy Encrypted Message</span>
+            </button>
+            <a id="btn-mailto-encrypted" href="mailto:mnemonics.xyz@gmail.com" class="btn btn-mailto" target="_blank">
+              <span class="btn-icon">✉️</span> Open Email Client (mailto)
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Terminal GPG CLI Cheatsheet -->
+    <section class="cli-section">
+      <div class="cli-card">
+        <div class="cli-header">
+          <h3>💻 GPG Command-Line Cheatsheet</h3>
+          <span class="cli-badge">Terminal Flow</span>
+        </div>
+        <div class="cli-body">
+          <div class="cli-step">
+            <span class="cli-comment"># 1. Import Public Key</span>
+            <code>gpg --import "{keyFilename}"</code>
+          </div>
+          <div class="cli-step">
+            <span class="cli-comment"># 2. Encrypt confidential message file</span>
+            <code>gpg --encrypt --armor -r mnemonics.xyz@gmail.com disclosure.txt</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PGP Key Details Card -->
     <PgpKeyCard />
   </article>
 </BaseLayout>
 
+<script is:inline src="https://cdn.jsdelivr.net/npm/openpgp@5.11.2/dist/openpgp.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnEncrypt = document.getElementById('btn-encrypt-pgp');
+    const btnCopyArmor = document.getElementById('btn-copy-armor');
+    const plaintextInput = document.getElementById('plaintext-input') as HTMLTextAreaElement;
+    const pgpOutputWrapper = document.getElementById('pgp-output-wrapper');
+    const pgpOutputText = document.getElementById('pgp-output-text') as HTMLTextAreaElement;
+    const btnMailto = document.getElementById('btn-mailto-encrypted') as HTMLAnchorElement;
+
+    if (btnEncrypt) {
+      btnEncrypt.addEventListener('click', async () => {
+        const text = plaintextInput ? plaintextInput.value.trim() : '';
+        if (!text) {
+          alert('Please enter a message to encrypt.');
+          return;
+        }
+
+        const rawPre = document.getElementById('pgp-raw-text');
+        const armoredKey = rawPre ? rawPre.textContent || '' : '';
+        if (!armoredKey) {
+          alert('Public key block not found on page.');
+          return;
+        }
+
+        const btnText = btnEncrypt.querySelector('.btn-text');
+        const origText = btnText ? btnText.textContent : 'Encrypt';
+        if (btnText) btnText.textContent = 'Encrypting...';
+        btnEncrypt.setAttribute('disabled', 'true');
+
+        try {
+          // @ts-ignore (openpgp loaded via CDN)
+          if (typeof openpgp === 'undefined') {
+            throw new Error('OpenPGP library failed to load.');
+          }
+
+          // @ts-ignore
+          const publicKey = await openpgp.readKey({ armoredKey });
+          // @ts-ignore
+          const message = await openpgp.createMessage({ text });
+          // @ts-ignore
+          const encrypted = await openpgp.encrypt({
+            message,
+            encryptionKeys: publicKey,
+          });
+
+          if (pgpOutputText) {
+            pgpOutputText.value = encrypted as string;
+          }
+          if (pgpOutputWrapper) {
+            pgpOutputWrapper.classList.remove('hidden');
+          }
+          if (btnMailto) {
+            const subject = encodeURIComponent('Encrypted Security Disclosure / In-Browser PGP');
+            const body = encodeURIComponent(encrypted as string);
+            btnMailto.href = `mailto:mnemonics.xyz@gmail.com?subject=${subject}&body=${body}`;
+          }
+        } catch (err: any) {
+          alert(`Encryption error: ${err.message || err}`);
+        } finally {
+          if (btnText) btnText.textContent = origText;
+          btnEncrypt.removeAttribute('disabled');
+        }
+      });
+    }
+
+    if (btnCopyArmor && pgpOutputText) {
+      btnCopyArmor.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(pgpOutputText.value);
+          const label = btnCopyArmor.querySelector('.label');
+          if (label) {
+            const orig = label.textContent;
+            label.textContent = '✓ Copied Armored Message!';
+            btnCopyArmor.classList.add('copied');
+            setTimeout(() => {
+              label.textContent = orig;
+              btnCopyArmor.classList.remove('copied');
+            }, 2000);
+          }
+        } catch (e) {
+          console.error('Copy failed:', e);
+        }
+      });
+    }
+  });
+</script>
+
 <style>
   .contact-page {
-    max-width: 760px;
+    max-width: 860px;
     margin: 0 auto;
+    padding-bottom: 2rem;
   }
-  .contact-page h2 {
-    margin-top: 1.8rem;
+  .contact-header {
+    margin-bottom: 1.8rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
   }
-  .email-highlight {
-    font-family: var(--font-mono);
+  .contact-header h1 {
+    font-size: 2.1rem;
+    color: var(--text-heading);
+    margin-bottom: 0.5rem;
+  }
+  .contact-intro {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .protocol-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .protocol-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .protocol-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
     font-weight: 600;
+  }
+  .protocol-value {
+    font-size: 0.95rem;
+    color: var(--text-heading);
+    font-weight: 500;
+  }
+  .email-link {
+    font-family: var(--font-mono);
     color: var(--accent-color);
+  }
+  .status-badge {
+    color: #3fb950;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+  .encryptor-section {
+    margin-bottom: 2rem;
+  }
+  .encryptor-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  .encryptor-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .encryptor-icon {
+    font-size: 1.6rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .encryptor-header h2 {
+    font-size: 1.3rem;
+    margin: 0 0 0.25rem 0;
+    color: var(--text-heading);
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .encryptor-sub {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+  }
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  .form-label {
+    display: block;
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+  }
+  .encryptor-textarea {
+    width: 100%;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+  .encryptor-textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+  }
+  .armor-textarea {
+    color: #58a6ff;
+  }
+  .encryptor-actions {
+    margin-bottom: 1.25rem;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none !important;
+  }
+  .btn-encrypt {
+    background-color: #238636;
+    color: #ffffff;
+    border: 1px solid #2ea043;
+  }
+  .btn-encrypt:hover {
+    background-color: #2ea043;
+  }
+  .btn-copy {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+  .btn-copy:hover {
+    background-color: var(--border-color);
+    color: var(--text-heading);
+  }
+  .btn-copy.copied {
+    border-color: #3fb950 !important;
+    color: #3fb950 !important;
+  }
+  .btn-mailto {
+    background-color: var(--accent-color);
+    color: #0d1117 !important;
+    border: 1px solid var(--accent-color);
+  }
+  .btn-mailto:hover {
+    background-color: var(--accent-hover);
+  }
+  .pgp-output-wrapper {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  .pgp-output-wrapper.hidden {
+    display: none;
+  }
+  .output-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  .cli-section {
+    margin-bottom: 2rem;
+  }
+  .cli-card {
+    background-color: #0b0e14;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.25rem;
+    font-family: var(--font-mono);
+  }
+  .cli-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .cli-header h3 {
+    font-size: 0.95rem;
+    color: var(--text-heading);
+    margin: 0;
+  }
+  .cli-badge {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background-color: var(--bg-secondary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+  }
+  .cli-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .cli-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .cli-comment {
+    color: #6a9955;
+    font-size: 0.82rem;
+  }
+  .cli-step code {
+    color: #3fb950;
+    font-size: 0.88rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    word-break: break-all;
+  }
+  @media (max-width: 600px) {
+    .output-actions {
+      flex-direction: column;
+    }
+    .btn {
+      justify-content: center;
+    }
   }
 </style>

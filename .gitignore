@@ -1,12 +1,10 @@
-# Development-only directories
-task/
-Task/
-progress/
-scratch/
-experiments/
-notes/
-tools/
-cms/
+# Development-only directories (root only)
+/task/
+/Task/
+/progress/
+/scratch/
+/experiments/
+/cms/
 
 # Build & Generated outputs
 dist/

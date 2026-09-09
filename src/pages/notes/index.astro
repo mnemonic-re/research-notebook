@@ -1,0 +1,122 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import notesData from '../../data/notes.json';
+
+interface NoteItem {
+  id: string;
+  title: string;
+  date: string;
+  category?: string;
+  content: string;
+}
+
+const notes: NoteItem[] = notesData || [];
+
+// Simple helper to render codeblocks and paragraphs in note content
+function renderNoteContent(text: string) {
+  if (!text) return '';
+  // Split codeblocks ```code ```
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  return parts.map(part => {
+    if (part.startsWith('```')) {
+      const firstLineEnd = part.indexOf('\n');
+      const lang = firstLineEnd !== -1 ? part.substring(3, firstLineEnd).trim() : '';
+      const code = firstLineEnd !== -1 ? part.substring(firstLineEnd + 1, part.length - 3) : part.substring(3, part.length - 3);
+      return `<pre><code class="language-${lang}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    } else {
+      const paragraphs = part.split(/\n\n+/).filter(p => p.trim());
+      return paragraphs.map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`).join('');
+    }
+  }).join('');
+}
+---
+
+<BaseLayout title="Notes | Cybersecurity Research Notebook">
+  <div class="page-header">
+    <h1>Quick Research Notes</h1>
+    <p>Short technical snippets, debugger command cheatsheets, and temporary observations.</p>
+  </div>
+
+  <div class="notes-container">
+    {notes.length === 0 ? (
+      <p class="empty-state">No notes added yet.</p>
+    ) : (
+      notes.map((note) => (
+        <div class="note-item" id={note.id}>
+          <div class="note-header">
+            <span class="note-date">{note.date}</span>
+            {note.category && <span class="note-category">{note.category}</span>}
+          </div>
+          <h3>{note.title}</h3>
+          <div class="note-body" set:html={renderNoteContent(note.content)} />
+        </div>
+      ))
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .notes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .note-item {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 1.25rem;
+    border-radius: 6px;
+  }
+  .note-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+  }
+  .note-date {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .note-category {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    background-color: var(--bg-tertiary);
+    color: var(--accent-color);
+    border: 1px solid var(--border-color);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+  }
+  .note-item h3 {
+    margin-top: 0.2rem;
+    margin-bottom: 0.6rem;
+    color: var(--text-heading);
+  }
+  .note-body {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+  .note-body :global(p) {
+    margin-bottom: 0.6rem;
+  }
+  .note-body :global(pre) {
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-color);
+    padding: 0.85rem;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+  .empty-state {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+</style>

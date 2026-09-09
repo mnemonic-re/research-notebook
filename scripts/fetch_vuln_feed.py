@@ -397,7 +397,7 @@ def fetch_zdi_advisories():
             "title": f"ZDI Advisory: {title}",
             "cve": cve_id,
             "date": pub_date,
-            "platform": "Windows" if is_windows(full_text) else "Linux",
+            "platform": "Windows" if is_windows(full_text) else ("Web" if is_web(full_text) else "Linux"),
             "component": "Zero Day Initiative",
             "severity": "CRITICAL",
             "cvss": 9.0,

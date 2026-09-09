@@ -35,14 +35,37 @@ function getSeverityClass(severity: string) {
       return 'sev-medium';
   }
 }
+
+function getPlatformInfo(platform: string, component: string, title: string) {
+  const p = (platform || '').toLowerCase();
+  const c = (component || '').toLowerCase();
+  const t = (title || '').toLowerCase();
+
+  if (p === 'windows' || t.includes('windows') || c.includes('windows') || c.includes('win32') || c.includes('msrc') || c.includes('microsoft')) {
+    return { class: 'pill-win', label: '🪟 Windows' };
+  }
+  if (p === 'linux' || t.includes('linux') || c.includes('linux') || c.includes('kernel') || c.includes('ubuntu') || c.includes('red hat')) {
+    return { class: 'pill-linux', label: '🐧 Linux' };
+  }
+  if (p === 'web' || t.includes('http') || t.includes('web') || t.includes('injection') || c.includes('web') || c.includes('browser') || c.includes('chrome') || c.includes('apache') || c.includes('nginx') || c.includes('koha')) {
+    return { class: 'pill-web', label: '🌐 Web / App' };
+  }
+  if (p === 'macos' || p === 'ios' || t.includes('macos') || t.includes('ios') || t.includes('apple')) {
+    return { class: 'pill-mac', label: '🍎 macOS' };
+  }
+  if (platform && platform.trim() !== '') {
+    return { class: 'pill-web', label: `🌐 ${platform}` };
+  }
+  return { class: 'pill-win', label: '🪟 Windows' };
+}
 ---
 
-<BaseLayout title="Critical Zero-Days & Emergency Radar (DEFCON 1) | CyberSec Notebook">
+<BaseLayout title="Critical Zero-Days & Emergency Radar | CyberSec Notebook">
   <!-- Pinned Emergency Hazard Alert Banner -->
   <div class="defcon-alert-banner">
     <div class="defcon-pulse-icon">☢️</div>
     <div class="defcon-banner-text">
-      <strong>DEFCON 1 EMERGENCY THREAT RADAR ACTIVE</strong> — Tracking active unauthenticated RCEs, zero-days, and weaponized exploit drops.
+      <strong>EMERGENCY THREAT RADAR ACTIVE</strong> — Tracking active unauthenticated RCEs, zero-days, and weaponized exploit drops.
     </div>
   </div>
 
@@ -55,7 +78,7 @@ function getSeverityClass(severity: string) {
       <div class="feed-stats-bar">
         <div class="stat-pill border-red">
           <span class="stat-num text-red">{feedItems.length}</span>
-          <span class="stat-label">DEFCON 1 CVEs</span>
+          <span class="stat-label">CRITICAL CVEs</span>
         </div>
         <div class="stat-pill border-red">
           <span class="stat-num text-red">{maxCvssCount}</span>
@@ -123,6 +146,7 @@ function getSeverityClass(severity: string) {
           id={item.id}
           data-title={item.title.toLowerCase()}
           data-cve={item.cve.toLowerCase()}
+          data-platform={item.platform}
           data-component={item.component.toLowerCase()}
           data-desc={item.description.toLowerCase()}
           data-cvss={item.cvss || 0}
@@ -132,9 +156,14 @@ function getSeverityClass(severity: string) {
           <div class="card-top-bar">
             <div class="cve-tag-group">
               <span class="cve-badge badge-red">{item.cve}</span>
-              <span class="platform-pill pill-defcon">
-                🚨 DEFCON 1
-              </span>
+              {(() => {
+                const plat = getPlatformInfo(item.platform, item.component, item.title);
+                return (
+                  <span class={`platform-pill ${plat.class}`}>
+                    {plat.label}
+                  </span>
+                );
+              })()}
               {item.is_kev && <span class="kev-badge">🔥 ACTIVE IN WILD</span>}
               {item.has_poc && <span class="poc-badge">⚡ WEAPONIZED POC</span>}
             </div>
@@ -245,6 +274,7 @@ function getSeverityClass(severity: string) {
         id: card.getAttribute('id'),
         cve: card.getAttribute('data-cve') || '',
         title: card.querySelector('.feed-title')?.textContent || '',
+        platform: card.getAttribute('data-platform') || '',
         component: card.getAttribute('data-component') || '',
         desc: card.getAttribute('data-desc') || '',
         cvss: parseFloat(card.getAttribute('data-cvss') || '0'),
@@ -452,7 +482,7 @@ function getSeverityClass(severity: string) {
           
           li.innerHTML = `
             <div class="autocomplete-title"><strong>${item.cve.toUpperCase()}</strong>: ${item.title}</div>
-            <div class="autocomplete-meta">DEFCON 1 • ${item.component}</div>
+            <div class="autocomplete-meta">${item.platform || 'Critical Zero-Day'} • ${item.component}</div>
           `;
 
           li.addEventListener('click', () => {
@@ -831,6 +861,31 @@ function getSeverityClass(severity: string) {
     font-size: 0.72rem;
     padding: 0.1rem 0.45rem;
     border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .pill-win {
+    background-color: rgba(56, 139, 253, 0.15);
+    color: #58a6ff;
+    border: 1px solid rgba(56, 139, 253, 0.35);
+  }
+
+  .pill-linux {
+    background-color: rgba(46, 160, 67, 0.15);
+    color: #3fb950;
+    border: 1px solid rgba(46, 160, 67, 0.35);
+  }
+
+  .pill-web {
+    background-color: rgba(163, 113, 247, 0.15);
+    color: #bc8cff;
+    border: 1px solid rgba(163, 113, 247, 0.35);
+  }
+
+  .pill-mac {
+    background-color: rgba(240, 136, 62, 0.15);
+    color: #f0883e;
+    border: 1px solid rgba(240, 136, 62, 0.35);
   }
 
   .pill-defcon {

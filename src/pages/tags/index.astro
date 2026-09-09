@@ -1,40 +1,163 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublishedPosts } from '../../utils/posts';
+import toolsData from '../../data/tools.json';
+import notesData from '../../data/notes.json';
 
 const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+
+// 1. Research Article Tags
 const allPublished = await getPublishedPosts();
-const tagCounts = new Map<string, { display: string; count: number }>();
+const researchTagMap = new Map<string, { display: string; count: number }>();
 
 allPublished.forEach((post) => {
   post.data.tags.forEach((tag) => {
-    const key = tag.toLowerCase();
-    const existing = tagCounts.get(key);
+    const key = tag.toLowerCase().trim();
+    const existing = researchTagMap.get(key);
     if (existing) {
       existing.count++;
     } else {
-      tagCounts.set(key, { display: tag, count: 1 });
+      researchTagMap.set(key, { display: tag.trim(), count: 1 });
     }
   });
 });
+const sortedResearchTags = Array.from(researchTagMap.entries()).sort((a, b) => b[1].count - a[1].count);
 
-const sortedTags = Array.from(tagCounts.entries()).sort((a, b) => b[1].count - a[1].count);
+// 2. Tool Categories & Tags
+const toolCategoryMap = new Map<string, { display: string; count: number }>();
+toolsData.forEach((tool: any) => {
+  if (tool.category) {
+    const cats = tool.category.split(',').map((c: string) => c.trim()).filter(Boolean);
+    cats.forEach((cat: string) => {
+      const key = cat.toLowerCase();
+      const existing = toolCategoryMap.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        toolCategoryMap.set(key, { display: cat, count: 1 });
+      }
+    });
+  }
+});
+const sortedToolTags = Array.from(toolCategoryMap.entries()).sort((a, b) => b[1].count - a[1].count);
+
+// 3. Quick Note Categories & Tags
+const noteCategoryMap = new Map<string, { display: string; count: number }>();
+notesData.forEach((note: any) => {
+  if (note.category) {
+    const key = note.category.toLowerCase().trim();
+    const existing = noteCategoryMap.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      noteCategoryMap.set(key, { display: note.category.trim(), count: 1 });
+    }
+  }
+});
+const sortedNoteTags = Array.from(noteCategoryMap.entries()).sort((a, b) => b[1].count - a[1].count);
 ---
 
-<BaseLayout title="Tags | Cybersecurity Research Notebook">
+<BaseLayout title="Tags & Shortcut Center | Cybersecurity Research Notebook">
   <div class="page-header">
-    <h1>Research Tags</h1>
-    <p>Browse technical articles by topic and research area.</p>
+    <h1>Tags & Shortcut Center</h1>
+    <p>Central cross-reference index connecting Research Articles, Tools & Utilities, and Quick Debugger Notes.</p>
   </div>
 
-  <div class="tags-cloud">
-    {sortedTags.map(([key, info]) => (
-      <a href={`${base}tags/${key}/`} class="tag-card">
-        <span class="tag-name">#{info.display}</span>
-        <span class="tag-count">{info.count} {info.count === 1 ? 'article' : 'articles'}</span>
-      </a>
-    ))}
+  <!-- Interactive Tag Quick Filter Box -->
+  <div class="search-box-wrapper">
+    <div class="search-input-box">
+      <span class="search-icon">⚡</span>
+      <input 
+        type="text" 
+        id="tag-search-input" 
+        placeholder="Quick search tags or topics (e.g. WinDbg, Reversing, Automation)..." 
+        autocomplete="off"
+      />
+    </div>
   </div>
+
+  <div class="tag-sections">
+    <!-- Section 1: Research Article Tags -->
+    <section class="tag-section">
+      <div class="section-title-bar">
+        <h2>📰 Research Article Tags</h2>
+        <span class="section-badge">{sortedResearchTags.length} topics</span>
+      </div>
+      <p class="section-desc">Tags associated with deep-dive technical research and writeups.</p>
+      
+      <div class="tags-cloud">
+        {sortedResearchTags.map(([key, info]) => (
+          <a href={`${base}tags/${key}/`} class="tag-card" data-tag-name={key}>
+            <span class="tag-prefix">#</span>
+            <span class="tag-name">{info.display}</span>
+            <span class="tag-count">{info.count} {info.count === 1 ? 'article' : 'articles'}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- Section 2: Tool Categories & Tags -->
+    <section class="tag-section">
+      <div class="section-title-bar">
+        <h2>🛠️ Tool & Utility Tags</h2>
+        <span class="section-badge">{sortedToolTags.length} categories</span>
+      </div>
+      <p class="section-desc">Categories and tags for security tools, plugins, and automation scripts.</p>
+
+      <div class="tags-cloud">
+        {sortedToolTags.map(([key, info]) => (
+          <a href={`${base}tags/${key}/`} class="tag-card tool-tag-card" data-tag-name={key}>
+            <span class="tag-prefix">🛠️</span>
+            <span class="tag-name">{info.display}</span>
+            <span class="tag-count">{info.count} {info.count === 1 ? 'tool' : 'tools'}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- Section 3: Quick Note Categories & Tags -->
+    <section class="tag-section">
+      <div class="section-title-bar">
+        <h2>📝 Quick Note Tags</h2>
+        <span class="section-badge">{sortedNoteTags.length} categories</span>
+      </div>
+      <p class="section-desc">Categories and command cheatsheet tags for quick reference notes.</p>
+
+      <div class="tags-cloud">
+        {sortedNoteTags.map(([key, info]) => (
+          <a href={`${base}tags/${key}/`} class="tag-card note-tag-card" data-tag-name={key}>
+            <span class="tag-prefix">📝</span>
+            <span class="tag-name">{info.display}</span>
+            <span class="tag-count">{info.count} {info.count === 1 ? 'note' : 'notes'}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('tag-search-input');
+      const tagCards = document.querySelectorAll('.tag-card');
+
+      if (!searchInput) return;
+
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        
+        tagCards.forEach(card => {
+          const tagName = card.getAttribute('data-tag-name') || '';
+          const cardText = card.textContent.toLowerCase();
+          
+          if (!query || tagName.includes(query) || cardText.includes(query)) {
+            card.style.display = 'inline-flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
 </BaseLayout>
 
 <style>
@@ -43,31 +166,139 @@ const sortedTags = Array.from(tagCounts.entries()).sort((a, b) => b[1].count - a
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
   }
+
+  .search-box-wrapper {
+    margin-bottom: 2rem;
+  }
+
+  .search-input-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 1rem;
+    pointer-events: none;
+  }
+
+  #tag-search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.6rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-heading);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  #tag-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  }
+
+  .tag-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .tag-section {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+
+  .section-title-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.2rem;
+  }
+
+  .section-title-bar h2 {
+    font-size: 1.25rem;
+    margin: 0;
+    border: none;
+    padding: 0;
+    color: var(--text-heading);
+  }
+
+  .section-badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background-color: var(--bg-tertiary);
+    color: var(--accent-color);
+    border: 1px solid var(--border-color);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .section-desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1.2rem;
+  }
+
   .tags-cloud {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.75rem;
   }
+
   .tag-card {
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    padding: 0.8rem 1.2rem;
+    padding: 0.6rem 1rem;
     border-radius: 6px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 0.5rem;
+    transition: all 0.15s ease;
   }
+
   .tag-card:hover {
     border-color: var(--accent-color);
+    background-color: var(--bg-secondary);
     text-decoration: none;
+    transform: translateY(-1px);
   }
+
+  .tag-prefix {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
   .tag-name {
     font-family: var(--font-mono);
     color: var(--accent-color);
     font-weight: 600;
+    font-size: 0.92rem;
   }
+
+  .tool-tag-card .tag-name {
+    color: #3fb950;
+  }
+
+  .note-tag-card .tag-name {
+    color: #d29922;
+  }
+
   .tag-count {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
     color: var(--text-muted);
+    background-color: var(--bg-primary);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
   }
 </style>
+

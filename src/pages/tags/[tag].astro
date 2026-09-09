@@ -1,48 +1,150 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublishedPosts } from '../../utils/posts';
+import toolsData from '../../data/tools.json';
+import notesData from '../../data/notes.json';
 
 export async function getStaticPaths() {
   const publishedPosts = await getPublishedPosts();
   const tagsMap = new Map<string, string>();
 
+  // 1. Gather research tags
   publishedPosts.forEach((post) => {
     post.data.tags.forEach((tag) => {
-      tagsMap.set(tag.toLowerCase(), tag);
+      const key = tag.toLowerCase().trim();
+      if (key) tagsMap.set(key, tag.trim());
     });
   });
 
+  // 2. Gather tool categories
+  toolsData.forEach((tool: any) => {
+    if (tool.category) {
+      tool.category.split(',').forEach((c: string) => {
+        const key = c.toLowerCase().trim();
+        if (key && !tagsMap.has(key)) {
+          tagsMap.set(key, c.trim());
+        }
+      });
+    }
+  });
+
+  // 3. Gather note categories
+  notesData.forEach((note: any) => {
+    if (note.category) {
+      const key = note.category.toLowerCase().trim();
+      if (key && !tagsMap.has(key)) {
+        tagsMap.set(key, note.category.trim());
+      }
+    }
+  });
+
   return Array.from(tagsMap.entries()).map(([tagKey, originalTag]) => {
+    // Filter matching articles
     const filteredPosts = publishedPosts.filter((post) =>
-      post.data.tags.some((t) => t.toLowerCase() === tagKey)
+      post.data.tags.some((t) => t.toLowerCase().trim() === tagKey)
     );
+
+    // Filter matching tools
+    const filteredTools = toolsData.filter((tool: any) => {
+      if (!tool.category) return false;
+      const cats = tool.category.split(',').map((c: string) => c.toLowerCase().trim());
+      return cats.includes(tagKey) || tool.name.toLowerCase().includes(tagKey);
+    });
+
+    // Filter matching notes
+    const filteredNotes = notesData.filter((note: any) => {
+      const catMatch = note.category && note.category.toLowerCase().trim() === tagKey;
+      const titleMatch = note.title && note.title.toLowerCase().includes(tagKey);
+      return catMatch || titleMatch;
+    });
+
     return {
       params: { tag: tagKey },
-      props: { tagName: originalTag, posts: filteredPosts },
+      props: { 
+        tagName: originalTag, 
+        posts: filteredPosts,
+        tools: filteredTools,
+        notes: filteredNotes
+      },
     };
   });
 }
 
-const { tagName, posts } = Astro.props;
+const { tagName, posts, tools = [], notes = [] } = Astro.props;
 const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+
+const totalMatches = posts.length + tools.length + notes.length;
 ---
 
-<BaseLayout title={`#${tagName} Research | Cybersecurity Research Notebook`}>
+<BaseLayout title={`#${tagName} Shortcuts | Cybersecurity Research Notebook`}>
   <div class="page-header">
-    <h1>Tag: <span class="tag-highlight">#{tagName}</span></h1>
-    <p>Found {posts.length} {posts.length === 1 ? 'article' : 'articles'}.</p>
+    <div class="header-breadcrumbs">
+      <a href={`${base}tags/`}>← Back to Tags & Shortcuts</a>
+    </div>
+    <h1>Tag Index: <span class="tag-highlight">#{tagName}</span></h1>
+    <p>Cross-resource summary: <strong>{totalMatches}</strong> total results found across Research, Tools, and Notes.</p>
   </div>
 
-  <div class="post-list">
-    {posts.map((post) => (
-      <article class="post-card">
-        <time class="post-date">{new Date(post.data.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</time>
-        <h2 class="post-card-title">
-          <a href={`${base}research/${post.slug}/`}>{post.data.title}</a>
-        </h2>
-        <p class="post-card-desc">{post.data.description}</p>
-      </article>
-    ))}
+  <div class="tag-results">
+    <!-- Matching Research Articles -->
+    {posts.length > 0 && (
+      <section class="results-section">
+        <h2 class="section-title">📰 Research Articles ({posts.length})</h2>
+        <div class="post-list">
+          {posts.map((post) => (
+            <article class="post-card">
+              <time class="post-date">{new Date(post.data.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</time>
+              <h3 class="post-card-title">
+                <a href={`${base}research/${post.slug}/`}>{post.data.title}</a>
+              </h3>
+              <p class="post-card-desc">{post.data.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Matching Security Tools -->
+    {tools.length > 0 && (
+      <section class="results-section">
+        <h2 class="section-title">🛠️ Tools & Utilities ({tools.length})</h2>
+        <div class="resource-grid">
+          {tools.map((tool: any) => (
+            <div class="resource-card tool-res-card">
+              <div class="res-header">
+                <span class="res-badge tool-badge">{tool.status}</span>
+                <span class="res-category">{tool.category}</span>
+              </div>
+              <h3 class="res-title">
+                <a href={`${base}tools/#${tool.id}`}>{tool.name}</a>
+              </h3>
+              <p class="res-desc">{tool.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Matching Quick Notes -->
+    {notes.length > 0 && (
+      <section class="results-section">
+        <h2 class="section-title">📝 Debugger & Research Notes ({notes.length})</h2>
+        <div class="resource-grid">
+          {notes.map((note: any) => (
+            <div class="resource-card note-res-card">
+              <div class="res-header">
+                <span class="res-badge note-badge">{note.category || 'Note'}</span>
+                <span class="res-date">{note.date}</span>
+              </div>
+              <h3 class="res-title">
+                <a href={`${base}notes/#${note.id}`}>{note.title}</a>
+              </h3>
+              <p class="res-desc">{note.content.substring(0, 140)}...</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
   </div>
 </BaseLayout>
 
@@ -52,28 +154,51 @@ const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL :
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
   }
+  .header-breadcrumbs {
+    margin-bottom: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
   .tag-highlight {
     font-family: var(--font-mono);
     color: var(--accent-color);
   }
+  .tag-results {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  .results-section {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  .section-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
   .post-list {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
   }
   .post-card {
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    padding: 1.25rem;
+    padding: 1rem 1.25rem;
     border-radius: 6px;
   }
   .post-date {
     font-family: var(--font-mono);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: var(--text-muted);
   }
   .post-card-title {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     margin-top: 0.2rem;
     margin-bottom: 0.4rem;
     border: none;
@@ -81,6 +206,64 @@ const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL :
   }
   .post-card-desc {
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  /* Resource Cards Grid */
+  .resource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .resource-card {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .tool-res-card {
+    border-left: 3px solid #3fb950;
+  }
+  .note-res-card {
+    border-left: 3px solid #d29922;
+  }
+  .res-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+  }
+  .res-badge {
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+  }
+  .tool-badge {
+    background-color: rgba(63, 185, 80, 0.15);
+    color: #3fb950;
+    border: 1px solid rgba(63, 185, 80, 0.3);
+  }
+  .note-badge {
+    background-color: rgba(210, 153, 34, 0.15);
+    color: #d29922;
+    border: 1px solid rgba(210, 153, 34, 0.3);
+  }
+  .res-category, .res-date {
+    color: var(--text-muted);
+  }
+  .res-title {
+    font-size: 1.05rem;
+    margin: 0;
+    border: none;
+  }
+  .res-desc {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin: 0;
   }
 </style>
+

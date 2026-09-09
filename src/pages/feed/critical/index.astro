@@ -442,9 +442,11 @@ function getPlatformInfo(platform: string, component: string, title: string) {
         const visibleSet = new Set(filteredItems.slice(startIdx, endIdx));
 
         indexedFeed.forEach(item => {
-          if (visibleSet.has(item)) {
+          const shouldBeVisible = visibleSet.has(item);
+          const isCurrentlyVisible = item.element.style.display !== 'none';
+          if (shouldBeVisible && !isCurrentlyVisible) {
             item.element.style.display = 'flex';
-          } else {
+          } else if (!shouldBeVisible && isCurrentlyVisible) {
             item.element.style.display = 'none';
           }
         });
@@ -725,7 +727,8 @@ function getPlatformInfo(platform: string, component: string, title: string) {
     gap: 2px;
     cursor: pointer;
     border-bottom: 1px solid var(--border-color);
-    transition: background-color 0.12s ease;
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease;
   }
 
   .autocomplete-item:last-child {
@@ -733,12 +736,19 @@ function getPlatformInfo(platform: string, component: string, title: string) {
   }
 
   .autocomplete-item:hover {
-    background-color: rgba(248, 81, 73, 0.12);
+    background-color: rgba(248, 81, 73, 0.18);
+    border-left-color: #f85149;
+    padding-left: 1.05rem;
+  }
+
+  .autocomplete-item:hover .autocomplete-title {
+    color: #f85149;
   }
 
   .autocomplete-title {
     font-size: 0.88rem;
     color: var(--text-heading);
+    transition: color 0.15s ease;
   }
 
   .autocomplete-meta {

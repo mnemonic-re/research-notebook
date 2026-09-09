@@ -28,25 +28,28 @@ const navItems = [
         if (isFeed) {
           return (
             <div class="nav-dropdown">
-              <a href={item.href} class={isFeedActive ? 'nav-link active dropdown-toggle' : 'nav-link dropdown-toggle'}>
+              <a href={item.href} class={isFeedActive ? 'nav-link active dropdown-toggle' : 'nav-link dropdown-toggle'} data-astro-prefetch="false">
                 {item.name} <span class="caret">▾</span>
               </a>
               <div class="dropdown-menu">
                 <a 
                   href={`${base}feed/`} 
                   class={pathname === `${base}feed/` || pathname === `${base}feed` ? 'dropdown-item active' : 'dropdown-item'}
+                  data-astro-prefetch="false"
                 >
                   💻 OS Security Feed
                 </a>
                 <a 
                   href={`${base}feed/web/`} 
                   class={pathname.includes('/feed/web') ? 'dropdown-item active' : 'dropdown-item'}
+                  data-astro-prefetch="false"
                 >
                   🌐 Web Security Feed
                 </a>
                 <a 
                   href={`${base}feed/critical/`} 
                   class={pathname.includes('/feed/critical') ? 'dropdown-item active item-critical' : 'dropdown-item item-critical'}
+                  data-astro-prefetch="false"
                 >
                   🚨 Critical Zero-Days
                 </a>

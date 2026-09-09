@@ -426,7 +426,8 @@ function renderNoteContent(text: string) {
     justify-content: space-between;
     cursor: pointer;
     border-bottom: 1px solid var(--border-color);
-    transition: background-color 0.12s ease;
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease;
   }
 
   .autocomplete-item:last-child {
@@ -434,13 +435,20 @@ function renderNoteContent(text: string) {
   }
 
   .autocomplete-item:hover {
-    background-color: var(--bg-tertiary);
+    background-color: rgba(56, 139, 253, 0.12);
+    border-left-color: var(--accent-color);
+    padding-left: 1.05rem;
+  }
+
+  .autocomplete-item:hover .autocomplete-title {
+    color: var(--accent-color);
   }
 
   .autocomplete-title {
     font-size: 0.9rem;
     color: var(--text-heading);
     font-weight: 500;
+    transition: color 0.15s ease;
   }
 
   .autocomplete-title mark {

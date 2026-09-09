@@ -522,4 +522,63 @@ kbd, .custom-kbd {
   margin: 0 0.15em;
 }
 
+/* Global Un-scoped Search Autocomplete Dropdown & Hover Styles */
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.autocomplete-item {
+  padding: 0.7rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer !important;
+  border-bottom: 1px solid var(--border-color);
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+  background-color: transparent;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover {
+  background-color: rgba(56, 139, 253, 0.15) !important;
+  border-left-color: var(--accent-color) !important;
+  padding-left: 1.2rem !important;
+}
+
+.autocomplete-item:hover .autocomplete-title {
+  color: var(--accent-color) !important;
+}
+
+/* Critical Feed Hover Override */
+#crit-autocomplete-dropdown .autocomplete-item:hover {
+  background-color: rgba(248, 81, 73, 0.2) !important;
+  border-left-color: #f85149 !important;
+}
+
+#crit-autocomplete-dropdown .autocomplete-item:hover .autocomplete-title {
+  color: #f85149 !important;
+}
+
+/* Web Feed Hover Override */
+#web-autocomplete-dropdown .autocomplete-item:hover {
+  background-color: rgba(163, 113, 247, 0.18) !important;
+  border-left-color: #bc8cff !important;
+}
+
+#web-autocomplete-dropdown .autocomplete-item:hover .autocomplete-title {
+  color: #bc8cff !important;
+}
 

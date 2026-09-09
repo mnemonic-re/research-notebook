@@ -1,0 +1,44 @@
+---
+interface Props {
+  title?: string;
+  expandable?: boolean;
+  expand?: boolean;
+  summary?: string;
+}
+
+const {
+  title = "WINDBG TRACE",
+  expandable = false,
+  expand = false,
+  summary,
+} = Astro.props;
+
+const isExpandable = expandable || expand;
+const summaryText = summary || title || "Click to expand WinDbg trace...";
+---
+
+{isExpandable ? (
+  <details class="custom-details windbg-details">
+    <summary class="custom-details-summary">{summaryText}</summary>
+    <div class="custom-details-content">
+      <div class="callout callout-command callout-windbg windbg-container">
+        <div class="callout-title">
+          <span>[{title}]</span>
+        </div>
+        <div class="callout-content windbg-content">
+          <slot />
+        </div>
+      </div>
+    </div>
+  </details>
+) : (
+  <div class="callout callout-command callout-windbg windbg-container">
+    <div class="callout-title">
+      <span>[{title}]</span>
+    </div>
+    <div class="callout-content windbg-content">
+      <slot />
+    </div>
+  </div>
+)}
+

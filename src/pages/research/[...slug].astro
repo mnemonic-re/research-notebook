@@ -12,6 +12,7 @@ import HexDump from '../../components/HexDump.astro';
 import Timeline from '../../components/Timeline.astro';
 import SampleCard from '../../components/SampleCard.astro';
 import Kbd from '../../components/Kbd.astro';
+import WinDbg from '../../components/WinDbg.astro';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -34,6 +35,6 @@ const { Content } = await post.render();
   image={post.data.image}
   rawContent={post.body}
 >
-  <Content components={{ Note, Warning, Finding, Command, Critical, Error, Details, HexDump, Timeline, SampleCard, Kbd }} />
+  <Content components={{ Note, Warning, Finding, Command, Critical, Error, Details, HexDump, Timeline, SampleCard, Kbd, WinDbg }} />
 </PostLayout>
 

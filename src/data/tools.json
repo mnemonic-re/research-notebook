@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tool-1787438530082",
+    "name": "WinDbgX MCP",
+    "status": "In Development",
+    "category": "Debugging, Automation, WinDbg",
+    "description": "Static code analysis and decompilation snippets have transformed vulnerability research and malware analysis, but they share a fundamental flaw: they lack dynamic execution context. Static analysis cannot observe live heap allocations, inspect unbacked thread return addresses in real time, or verify how registers evolve across loop iterations.\n\nTo bridge this gap, we built WinDbgX-MCP — an open-source Model Context Protocol (MCP) server that connects AI assistants (Google Antigravity, VS Code Cline, Claude Desktop, Cursor, Codex, and local LLMs) directly into live WinDbg and WinDbgX (DbgX.Shell.exe) debugging sessions across user-mode binaries, kernel drivers, remote debug servers, and crash dumps.",
+    "note": "Connect AI to your WinDbgX session via MCP!",
+    "links": [
+      {
+        "label": "Github Repo",
+        "url": "https://github.com/mnemonic-re/WinDbgX-MCP"
+      }
+    ]
+  }
+]

@@ -1,5 +1,35 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import toolsData from '../../data/tools.json';
+
+interface ToolLink {
+  label: string;
+  url: string;
+}
+
+interface ToolItem {
+  id: string;
+  name: string;
+  status: string;
+  category?: string;
+  description: string;
+  note?: string;
+  links?: ToolLink[];
+  screenshots?: string[];
+}
+
+const tools: ToolItem[] = toolsData || [];
+
+function getStatusClass(status: string) {
+  switch ((status || '').toLowerCase()) {
+    case 'released':
+      return 'status-released';
+    case 'in development':
+      return 'status-dev';
+    default:
+      return 'status-placeholder';
+  }
+}
 ---
 
 <BaseLayout title="Tools | Cybersecurity Research Notebook">
@@ -8,19 +38,61 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <p>Tools, plugins, and automation scripts developed during reverse engineering and security research.</p>
   </div>
 
-  <div class="tools-grid">
-    <div class="tool-card">
-      <div class="tool-status status-placeholder">Planned / Private</div>
-      <h2>Kernel Research Tooling</h2>
-      <p>Custom scripts and automation helpers for driver analysis and dynamic IOCTL testing.</p>
-      <p class="tool-note">Note: Public repositories and open-source releases will be linked here once published.</p>
-    </div>
+  <div class="tools-list">
+    {tools.length === 0 ? (
+      <p class="empty-state">No tools listed yet.</p>
+    ) : (
+      tools.map((tool) => {
+        const mainLink = (tool.links && tool.links.length > 0) ? tool.links[0].url : undefined;
+        return (
+          <article class="tool-item" id={tool.id}>
+            <div class="tool-item-header">
+              {mainLink ? (
+                <a href={mainLink} target={mainLink.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer" class="tool-title-link">
+                  <h2 class="tool-title">{tool.name}</h2>
+                </a>
+              ) : (
+                <h2 class="tool-title">{tool.name}</h2>
+              )}
+              <div class="tool-badges">
+                <span class={`tool-status ${getStatusClass(tool.status)}`}>{tool.status}</span>
+                {tool.category && <span class="tool-category">{tool.category}</span>}
+              </div>
+            </div>
 
-    <div class="tool-card">
-      <div class="tool-status status-placeholder">In Development</div>
-      <h2>WinDbg Scripting Helpers</h2>
-      <p>Python/JavaScript extension scripts for automating register inspection and struct dumps in WinDbg preview.</p>
-    </div>
+            {mainLink ? (
+              <a href={mainLink} target={mainLink.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer" class="tool-desc-link">
+                <p class="tool-desc">{tool.description}</p>
+              </a>
+            ) : (
+              <p class="tool-desc">{tool.description}</p>
+            )}
+
+            {tool.note && <p class="tool-note">Note: {tool.note}</p>}
+
+            {tool.links && tool.links.length > 0 && (
+              <div class="tool-links">
+                {tool.links.map((link) => (
+                  <a href={link.url} target={link.url.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer" class="tool-link-btn">
+                    🔗 {link.label}
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {tool.screenshots && tool.screenshots.length > 0 && (
+              <div class="tool-screenshots">
+                {tool.screenshots.map((src, idx) => (
+                  <a href={src} target="_blank" rel="noopener noreferrer">
+                    <img src={src} alt={`${tool.name} screenshot ${idx + 1}`} class="tool-img-thumb" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </article>
+        );
+      })
+    )}
   </div>
 </BaseLayout>
 
@@ -30,16 +102,58 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
   }
-  .tools-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  .tools-list {
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
   }
-  .tool-card {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    padding: 1.5rem;
-    border-radius: 6px;
+  .tool-item {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .tool-item:last-child {
+    border-bottom: none;
+  }
+  .tool-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .tool-title-link {
+    text-decoration: none;
+    color: inherit;
+  }
+  .tool-title-link:hover .tool-title {
+    color: var(--accent-color);
+  }
+  .tool-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-heading);
+    transition: color 0.2s ease;
+  }
+  .tool-desc-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .tool-desc-link:hover .tool-desc {
+    color: var(--text-primary);
+  }
+  .tool-desc {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0.5rem 0 0.75rem 0;
+  }
+  .tool-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
   .tool-status {
     font-family: var(--font-mono);
@@ -47,23 +161,73 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     display: inline-block;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    margin-bottom: 0.8rem;
+    white-space: nowrap;
+  }
+  .status-released {
+    background-color: rgba(63, 185, 80, 0.15);
+    color: #3fb950;
+    border: 1px solid rgba(63, 185, 80, 0.4);
+  }
+  .status-dev {
+    background-color: rgba(210, 153, 34, 0.15);
+    color: #d29922;
+    border: 1px solid rgba(210, 153, 34, 0.4);
   }
   .status-placeholder {
     background-color: var(--bg-tertiary);
     color: var(--text-muted);
     border: 1px solid var(--border-color);
   }
-  .tool-card h2 {
-    font-size: 1.25rem;
-    margin-top: 0;
-    margin-bottom: 0.5rem;
+  .tool-category {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background-color: var(--bg-secondary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
   }
   .tool-note {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--text-muted);
     font-style: italic;
+    margin: 0.5rem 0 0 0;
+  }
+  .tool-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
     margin-top: 0.8rem;
-    margin-bottom: 0;
+  }
+  .tool-link-btn {
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    padding: 0.35rem 0.75rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--accent-color);
+    transition: all 0.2s ease;
+  }
+  .tool-link-btn:hover {
+    border-color: var(--accent-color);
+    background-color: var(--bg-tertiary);
+    text-decoration: none;
+  }
+  .tool-screenshots {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    overflow-x: auto;
+  }
+  .tool-img-thumb {
+    max-height: 140px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    object-fit: cover;
+  }
+  .empty-state {
+    color: var(--text-muted);
+    font-style: italic;
   }
 </style>

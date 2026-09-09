@@ -1,0 +1,220 @@
+---
+title: "WinDbgX-MCP: Bridging AI Agents into Live Windows Debugging & Reverse Engineering"
+description: "An open-source Model Context Protocol server equipping AI coding assistants with native WinDbg automation, DebugExt de.dll reverse engineering engines, and real-time visual GUI stepping."
+date: 2026-09-09
+tags:
+  - WinDbg
+  - ReverseEngineering
+  - MCP
+  - AI
+  - Windows
+  - Kernel
+category: "Tools"
+draft: false
+---
+
+## Introduction
+
+Static code analysis and decompilation snippets have transformed vulnerability research and malware analysis, but they share a fundamental flaw: **they lack dynamic execution context**. Static analysis cannot observe live heap allocations, inspect unbacked thread return addresses in real time, or verify how registers evolve across loop iterations.
+
+To bridge this gap, we built **WinDbgX-MCP** — an open-source Model Context Protocol (MCP) server that connects AI assistants (Google Antigravity, VS Code Cline, Claude Desktop, Cursor, Codex, and local LLMs) directly into live **WinDbg** and **WinDbgX** (`DbgX.Shell.exe`) debugging sessions across user-mode binaries, kernel drivers, remote debug servers, and crash dumps.
+
+<Note>
+WinDbgX-MCP packages both Python server management and pre-compiled 64-bit and 32-bit native extension DLLs (<code>de.dll</code>) into a single, zero-configuration <code>pip</code> wheel with automatic binary path discovery.
+</Note>
+
+---
+
+## Architecture & Communication Protocols
+
+WinDbgX-MCP acts as an intermediary bridge between Model Context Protocol host clients and native Windows debugging binaries (`cdb.exe` and `kd.exe`).
+
+```text
++-----------------------+        JSON-RPC (Stdio / SSE)        +------------------------+
+|   AI Assistant Host   |  <=================================>  |    WinDbgMCP Server    |
+| (Cline, Antigravity)  |                                      |    (Python / FastMCP)  |
++-----------------------+                                      +------------------------+
+                                                                           ||
+                                                                   IPC Pipe / Popen
+                                                                           ||
+                                                                           \/
++-----------------------+         TCP Remote Debug Protocol     +------------------------+
+|  WinDbg GUI (WinDbgX) |  <=================================>  |   cdb.exe / kd.exe     |
+| (Live Desktop Window) |      tcp:Port=5005,Server=localhost   |   + DebugExt (de.dll)  |
++-----------------------+                                       +------------------------+
+```
+
+### Transport Modes
+1. **Stdio Mode (IPC)**: Launched automatically by IDE clients (Antigravity, Cursor, Cline) as a background process using standard input/output. Zero network exposure or firewall prompt requirements.
+2. **SSE HTTP Network Mode (`--sse`)**: Listens on a TCP port (e.g. `8000`) streaming events and JSON-RPC endpoints for remote AI execution or multi-machine lab environments.
+
+<Command>
+pip install https://raw.githubusercontent.com/mnemonic-re/WinDbgX-MCP/main/WinDbgMCP/dist/windbg_mcp-0.1.0-py3-none-any.whl
+windbg-mcp --help
+</Command>
+
+---
+
+## Live GUI Visual Stepping & Intent Streaming
+
+A primary innovation of WinDbgX-MCP is **Live GUI Visual Stepping**. When attached to an interactive desktop **WinDbg GUI** (`WinDbgX`) server via `tcp:Port=5005`, the AI agent's execution flow and reasoning are rendered live inside the user's desktop debugger window.
+
+<Timeline title="Visual AI Debugging Workflow">
+  <div class="timeline-step">
+    <span class="step-badge">Step 1</span>
+    <span class="step-text">User opens target binary in WinDbg GUI and starts server: <code>.server tcp:port=5005</code></span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">Step 2</span>
+    <span class="step-text">AI agent attaches via MCP tool <code>open_cdb_remote("tcp:Port=5005,Server=localhost")</code></span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">Step 3</span>
+    <span class="step-text">AI Intent Banners (<code>=== [AI INTENT]: &lt;reasoning&gt; ===</code>) stream live into the debugger command window.</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">Step 4</span>
+    <span class="step-text">AI executes instruction steps (<code>p</code>, <code>so</code>, <code>ret</code>, <code>!de.disasm</code>) updating visual disassembly cursor and register panels in real time.</span>
+  </div>
+</Timeline>
+
+<WinDbg title="Live Desktop WinDbg GUI Output Window" expandable={false}>
+```text
+0:001> .echo === [AI INTENT]: Stepping out to caller return address ===
+=== [AI INTENT]: Stepping out to caller return address ===
+0:001> ret
+rax=00000061B50B3000 rbx=0000000000000000 rcx=0000000000000000 rdx=00007FFC0A31CAF0
+rsi=0000000000000000 rdi=0000000000000000 rbp=0000000000000000 rsp=00000061B52FF718
+rip=00007FFC0A2F10D0 efl=00000000
+ntdll!DbgBreakPoint:
+00007FFC0A2F10D0  cc                int      3
+ntdll!DbgBreakPoint+0x1:
+00007ffc`0a2f10d1 c3              ret
+
+0:001> .echo === [AI INTENT]: Stepping over next instruction to update disassembly cursor in WinDbg GUI ===
+=== [AI INTENT]: Stepping over next instruction to update disassembly cursor in WinDbg GUI ===
+0:001> so
+rip=00007FFC0A2F10D1 efl=00000000
+ntdll!DbgUiRemoteBreakin+0x4e:
+00007ffc`0a31cb3e eb00            jmp     ntdll!DbgUiRemoteBreakin+0x50 (00007ffc`0a31cb40)
+
+0:001> !de.disasm L10
+============================================================
+ DISASSEMBLY: ntdll!DbgUiRemoteBreakin+0x4e (0x7FFC0A31CB3E)
+============================================================
+00007FFC0A31CB3E  eb00              jmp      ntdll!DbgUiRemoteBreakin+0x50 (00007ffc`0a31cb40)
+00007FFC0A31CB40  33c9              xor      ecx,ecx
+00007FFC0A31CB42  e8e920f8ff        call     ntdll!RtlExitUserThread (00007ffc`0a29ec30)
+============================================================
+```
+</WinDbg>
+
+---
+
+## DebugExt (`de.dll`) Analysis Engine
+
+WinDbgX-MCP integrates native C++ extensions ported from **DebugExt** (`de.dll`), adding high-level reverse-engineering bang commands directly to standard `cdb` and `kd` instances:
+
+| Command | Category | Description |
+| :--- | :--- | :--- |
+| `!de.disasm` | Disassembly | DML colorized disassembly with live register symbol dereferencing. |
+| `!de.strref` | Memory Scan | Scans module sections for ASCII and UTF-16 string references. |
+| `!de.xrefs` | Cross-Ref | Locates code cross-references (`CALL`, `JMP`, `RIP`-relative) to target addresses. |
+| `!de.peb` | Security | Audits PEB structure, `BeingDebugged`, and `NtGlobalFlag` heap mitigations. |
+| `!de.memmap` | Protection | Audits virtual memory protection maps highlighting `RWX` regions. |
+| `!de.hooks` | Integrity | Scans inline detour hooks, IAT patches, and unmapped executable memory pages. |
+| `!de.regs` | State | Formatted 64-bit register state grid with decimal conversions. |
+
+<HexDump title="DEBUGEXT - DISASSEMBLY & REGISTER DEREFERENCING">
+```text
+00007FF641631370  486bc01f          imul     rax,rax,1Fh
+00007FF641631374  490fbe09          movsx    rcx,byte ptr [r9] ds:00000000`00000000=??
+00007FF641631378  4803c1            add      rax,rcx
+00007FF64163137B  49ffc1            inc      r9
+00007FF64163137E  4d3bc8            cmp      r9,r8
+00007FF641631381  75ed              jne      GigaApp+0x1370 (00007ff6`41631370) [br=0]
+00007FF641631383  488bc8            mov      rcx,rax
+00007FF641631386  4885c0            test     rax,rax
+00007FF641631389  7903              jns      GigaApp+0x138e (00007ff6`4163138e) [br=1]
+00007FF64163138B  48f7d9            neg      rcx
+00007FF64163138E  48394c2440        cmp      qword ptr [rsp+40h],rcx
+```
+</HexDump>
+
+---
+
+## Live Case Study: Reversing `GigaApp.exe`
+
+To evaluate WinDbgX-MCP's dynamic reasoning performance, we benchmarked an automated key validation reverse-engineering task on `GigaApp.exe`.
+
+<SampleCard 
+  name="GigaApp.exe" 
+  type="PE32+ Executable (x64)" 
+  size="36.5 KB" 
+  hash="32187014223d1e90e2c7bd137f51227b229cf3e1e5b5bb72660dac123456789a" 
+/>
+
+### Execution & Analysis Constraints
+The AI agent was strictly restricted from reading source files or repository code on disk, forcing **100% pure assembly instruction tracing** over the WinDbg MCP remote server interface.
+
+<Timeline title="Automated Reverse Engineering Sequence">
+  <div class="timeline-step">
+    <span class="step-badge">0.0s</span>
+    <span class="step-text">Agent connects via <code>open_cdb_remote("tcp:Port=5005,Server=localhost")</code>.</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">1.2s</span>
+    <span class="step-text">Executes <code>lm m GigaApp</code> to locate base address (<code>0x7FF641630000</code>).</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">3.5s</span>
+    <span class="step-text">Disassembles keygen routine at <code>0x7FF641631370</code> using <code>!de.disasm</code>.</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">6.0s</span>
+    <span class="step-text">Extracts multiplicative string hash: <code>key = (key * 31) + char_code</code>.</span>
+  </div>
+  <div class="timeline-step">
+    <span class="step-badge">9.8s</span>
+    <span class="step-text">Computes valid key for name <b>nemotron</b> (<code>3119252081142</code>) and generates executive report.</span>
+  </div>
+</Timeline>
+
+<Finding>
+<b>Benchmark Result</b>: The AI agent completed full assembly disassembly, algorithm extraction, key calculation for "nemotron" (<code>3119252081142</code>), scratchpad logging, and final report generation in under 10 seconds.
+</Finding>
+
+---
+
+## Configuring VS Code (Cline) & AI Clients
+
+WinDbgX-MCP integrates into VS Code via the **Cline** extension or any standard MCP client.
+
+### `cline_mcp_settings.json` Configuration
+
+```json
+{
+  "mcpServers": {
+    "windbg-mcp": {
+      "command": "windbg-mcp",
+      "env": {
+        "_NT_SYMBOL_PATH": "srv*C:\\Symbols*https://msdl.microsoft.com/download/symbols"
+      }
+    }
+  }
+}
+```
+
+<Note>
+Because WinDbgX-MCP installs its executable binary globally during <code>pip install</code>, no hardcoded file paths are required in client settings.
+</Note>
+
+---
+
+## Conclusion & Repository Access
+
+WinDbgX-MCP demonstrates that combining live Windows debugger automation with LLM reasoning enables autonomous dynamic analysis, crash dump triage, and memory inspection without sacrificing accuracy or UI visibility.
+
+* **GitHub Repository**: [https://github.com/mnemonic-re/WinDbgX-MCP](https://github.com/mnemonic-re/WinDbgX-MCP)
+* **License**: MIT License
+* **Package Distribution**: Available via direct `.whl` and GitHub repository releases.

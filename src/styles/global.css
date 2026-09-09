@@ -27,7 +27,7 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 
-  --max-width: 860px;
+  --max-width: 1200px;
 }
 
 *, *::before, *::after {
@@ -302,6 +302,30 @@ main {
 }
 .callout-hexdump .callout-title {
   color: #79c0ff;
+}
+
+/* Custom WinDbg Callout & Syntax Highlighting Styling */
+.callout-windbg {
+  background-color: #0b0e14 !important;
+  border-color: #238636 !important;
+  font-family: var(--font-mono);
+}
+
+.callout-windbg .callout-title {
+  color: #3fb950 !important;
+}
+
+.windbg-content {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.windbg-content pre {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Custom Timeline & Step Flow Component */

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "windbg-kdnet-ref",
+    "title": "WinDbg KDNET Kernel Connection Quick Ref",
+    "date": "2026-08-20",
+    "category": "WinDbg",
+    "content": "Useful commands when starting a dual-VM kernel debugging session:\n\n```cmd\nbcdedit /debug on\nbcdedit /dbgsettings net hostip:192.168.1.100 port:50000 key:1.2.3.4\n```"
+  },
+  {
+    "id": "ida-pro-pdb-path",
+    "title": "PDB Symbol Path Environment",
+    "date": "2026-08-18",
+    "category": "Debugging",
+    "content": "Configure local cache path alongside Microsoft Public Symbol Server:\n\n```cmd\n_NT_SYMBOL_PATH=SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols\n```"
+  }
+]

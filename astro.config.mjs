@@ -6,6 +6,9 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://mnemonic-re.github.io',
   base: '/research-notebook/',
+  devToolbar: {
+    enabled: false,
+  },
   integrations: [mdx(), sitemap()],
   markdown: {
     shikiConfig: {

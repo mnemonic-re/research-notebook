@@ -1,0 +1,146 @@
+[
+  {
+    "category": "cve-db",
+    "categoryName": "Vulnerability Databases & CVE Discovery",
+    "items": [
+      {
+        "name": "NIST National Vulnerability Database (NVD)",
+        "url": "https://nvd.nist.gov/",
+        "badge": "CVE Index",
+        "description": "The US government repository of standards-based vulnerability management data. Provides CVSS scores, CPE vector strings, and official CVE analysis.",
+        "tags": ["cve", "nist", "cvss", "nvd", "database"]
+      },
+      {
+        "name": "CISA Known Exploited Vulnerabilities (KEV)",
+        "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+        "badge": "Active Exploits",
+        "description": "Authoritative catalog of vulnerabilities that have been confirmed to be actively exploited in the wild by threat actors.",
+        "tags": ["cisa", "kev", "zero-day", "wild-exploitation"]
+      },
+      {
+        "name": "MITRE CVE List",
+        "url": "https://cve.mitre.org/",
+        "badge": "Canonical Standard",
+        "description": "The global standard dictionary of Common Vulnerabilities and Exposures (CVE). Primary reference for unique CVE identifiers.",
+        "tags": ["mitre", "cve", "standards", "dictionary"]
+      },
+      {
+        "name": "OSV.dev (Open Source Vulnerabilities)",
+        "url": "https://osv.dev/",
+        "badge": "Open Source",
+        "description": "Google-backed open source vulnerability database. Aggregates precise package version ranges across npm, PyPI, Cargo, Go, Maven, and Crates.",
+        "tags": ["google", "osv", "open-source", "packages"]
+      },
+      {
+        "name": "GitHub Security Advisory Database (GHSA)",
+        "url": "https://github.com/advisories",
+        "badge": "Code & Dependencies",
+        "description": "Curated security advisories mapping CVEs to GitHub repositories, pull requests, dependencies, and fix commits.",
+        "tags": ["github", "ghsa", "code", "dependencies", "pocs"]
+      },
+      {
+        "name": "VulnCheck Intelligence",
+        "url": "https://vulncheck.com/",
+        "badge": "Threat Intel",
+        "description": "High-speed vulnerability intelligence aggregator tracking real-time exploitation status, PoC availability, and patch availability.",
+        "tags": ["vulncheck", "intelligence", "real-time", "pocs"]
+      },
+      {
+        "name": "Exploit-DB",
+        "url": "https://www.exploit-db.com/",
+        "badge": "Exploit Archive",
+        "description": "Offensive Security's non-profit archive of public exploits, shellcode drops, and vulnerable software binaries.",
+        "tags": ["exploit-db", "offsec", "exploits", "shellcode", "pocs"]
+      },
+      {
+        "name": "Packet Storm Security",
+        "url": "https://packetstormsecurity.com/",
+        "badge": "Exploit Drop",
+        "description": "Information security portal delivering real-time vulnerability advisories, exploit scripts, security tools, and whitepapers.",
+        "tags": ["packetstorm", "exploits", "advisories", "tools"]
+      }
+    ]
+  },
+  {
+    "category": "vendor-bulletins",
+    "categoryName": "Vendor Security Bulletins & Advisory Hubs",
+    "items": [
+      {
+        "name": "Microsoft Security Response Center (MSRC)",
+        "url": "https://msrc.microsoft.com/update-guide",
+        "badge": "Microsoft Official",
+        "description": "Official MSRC Security Update Guide for Patch Tuesday releases, Windows kernel LPEs, Win32k, Hyper-V, and Azure advisories.",
+        "tags": ["microsoft", "msrc", "patch-tuesday", "windows", "kernel"]
+      },
+      {
+        "name": "Google Project Zero",
+        "url": "https://googleprojectzero.blogspot.com/",
+        "badge": "Research Lab",
+        "description": "Elite zero-day research team analyzing complex memory corruption, browser engine exploits, kernel LPEs, and sandbox escapes.",
+        "tags": ["google", "project-zero", "research", "0-days", "browser"]
+      },
+      {
+        "name": "Zero Day Initiative (ZDI) Advisories",
+        "url": "https://www.zerodayinitiative.com/advisories/published/",
+        "badge": "0-Day Disclosure",
+        "description": "Trend Micro's ZDI portal publishing real-time zero-day disclosures, Pwn2Own competition exploits, and vendor patches.",
+        "tags": ["zdi", "pwn2own", "0-days", "disclosures"]
+      },
+      {
+        "name": "Ubuntu Security Notices (USN)",
+        "url": "https://ubuntu.com/security/notices",
+        "badge": "Linux Official",
+        "description": "Canonical's security notice database detailing Linux kernel CVEs, eBPF, netfilter, systemd, and glibc security updates.",
+        "tags": ["ubuntu", "canonical", "linux", "kernel", "usn"]
+      },
+      {
+        "name": "Debian Security Information",
+        "url": "https://www.debian.org/security/",
+        "badge": "Linux Official",
+        "description": "Debian Project's security tracker and DSA bulletins for Linux distribution vulnerabilities and package patches.",
+        "tags": ["debian", "linux", "dsa", "security-tracker"]
+      },
+      {
+        "name": "Red Hat Security Advisories (RHSA)",
+        "url": "https://access.redhat.com/security/security-updates/",
+        "badge": "Enterprise Linux",
+        "description": "Red Hat Customer Portal tracking enterprise Linux kernel vulnerabilities, CVE severity ratings, and RHSB bulletins.",
+        "tags": ["redhat", "rhel", "linux", "rhsa", "enterprise"]
+      }
+    ]
+  },
+  {
+    "category": "news-blogs",
+    "categoryName": "Threat Intelligence & Security News",
+    "items": [
+      {
+        "name": "The Hacker News (THN)",
+        "url": "https://thehackernews.com/",
+        "badge": "Security News",
+        "description": "Leading cybersecurity news platform covering active cyberattacks, nation-state APTs, zero-day disclosures, and malware campaigns.",
+        "tags": ["thn", "hacker-news", "cybersecurity", "news", "apts"]
+      },
+      {
+        "name": "BleepingComputer",
+        "url": "https://www.bleepingcomputer.com/",
+        "badge": "Incident News",
+        "description": "Premier cybersecurity news site specializing in ransomware breakdowns, active zero-day exploitation, and technical incident analysis.",
+        "tags": ["bleepingcomputer", "ransomware", "zero-days", "incidents"]
+      },
+      {
+        "name": "Dark Reading",
+        "url": "https://www.darkreading.com/",
+        "badge": "Enterprise Security",
+        "description": "Enterprise cybersecurity news outlet focusing on vulnerability trends, threat intelligence, cloud security, and risk analysis.",
+        "tags": ["dark-reading", "enterprise", "threat-intel", "trends"]
+      },
+      {
+        "name": "Schneier on Security",
+        "url": "https://www.schneier.com/",
+        "badge": "Thought Leadership",
+        "description": "Bruce Schneier's renowned blog covering cryptography, security policy, system design, and fundamental privacy analysis.",
+        "tags": ["schneier", "cryptography", "policy", "privacy"]
+      }
+    ]
+  }
+]

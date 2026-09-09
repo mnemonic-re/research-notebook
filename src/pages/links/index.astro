@@ -1,0 +1,595 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import linksData from '../../data/links.json';
+
+interface LinkItem {
+  name: string;
+  url: string;
+  badge: string;
+  description: string;
+  tags: string[];
+}
+
+interface CategoryGroup {
+  category: string;
+  categoryName: string;
+  items: LinkItem[];
+}
+
+const categories: CategoryGroup[] = linksData || [];
+const allItems = categories.flatMap(c => c.items);
+---
+
+<BaseLayout title="Links & Intelligence Directory | Cybersecurity Research Notebook">
+  <div class="page-header">
+    <div class="header-content-wrapper">
+      <div>
+        <h1>Security Links Directory</h1>
+        <p>Curated directory of vulnerability databases, official vendor security bulletins, exploit archives, and threat intelligence news.</p>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-pill">
+          <span class="stat-num">{allItems.length}</span>
+          <span class="stat-label">Total Links</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num text-accent">{categories.length}</span>
+          <span class="stat-label">Categories</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Search & Filter Bar -->
+  <div class="control-bar">
+    <div class="search-input-container">
+      <div class="search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        id="links-search-input" 
+        placeholder="Search security links, CVE databases, vendor bulletins, blogs (press '/' to focus)..." 
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="button" id="links-clear-btn" class="clear-btn" aria-label="Clear search" style="display: none;">✕</button>
+      <div class="search-shortcut"><kbd>/</kbd></div>
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div class="filter-bar">
+      <div class="category-pills">
+        <button class="pill-btn active" data-filter="all">All ({allItems.length})</button>
+        {categories.map(cat => (
+          <button class="pill-btn" data-filter={cat.category}>
+            {cat.categoryName} ({cat.items.length})
+          </button>
+        ))}
+      </div>
+      <div class="search-counter">
+        Showing <span id="visible-count">{allItems.length}</span> of {allItems.length} links
+      </div>
+    </div>
+  </div>
+
+  <!-- Links Grid by Categories -->
+  <div class="categories-container" id="links-container">
+    {categories.map(cat => (
+      <section class="category-section" data-category={cat.category}>
+        <h2 class="category-heading">{cat.categoryName}</h2>
+        <div class="links-grid">
+          {cat.items.map(item => (
+            <article 
+              class="link-card" 
+              data-name={item.name.toLowerCase()}
+              data-desc={item.description.toLowerCase()}
+              data-tags={item.tags.join(' ').toLowerCase()}
+              data-cat={cat.category}
+            >
+              <div class="card-top">
+                <span class="badge">{item.badge}</span>
+                <a href={item.url} target="_blank" rel="noopener noreferrer" class="link-url-meta">
+                  {new URL(item.url).hostname.replace('www.', '')} ↗
+                </a>
+              </div>
+
+              <h3 class="link-title">
+                <a href={item.url} target="_blank" rel="noopener noreferrer">
+                  {item.name}
+                </a>
+              </h3>
+
+              <p class="link-desc">{item.description}</p>
+
+              <div class="card-bottom">
+                <div class="tags-list">
+                  {item.tags.map(tag => (
+                    <span class="tag">#{tag}</span>
+                  ))}
+                </div>
+
+                <a href={item.url} target="_blank" rel="noopener noreferrer" class="visit-btn">
+                  Visit Portal 🔗
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <!-- Empty Search State -->
+    <div id="no-links-results" class="no-results-card" style="display: none;">
+      <div class="no-results-icon">🔍</div>
+      <h3>No security links matching "<span id="query-term"></span>"</h3>
+      <p>Try searching for terms like <code>NVD</code>, <code>CISA</code>, <code>MSRC</code>, <code>Project Zero</code>, <code>Exploit-DB</code>, or <code>BleepingComputer</code>.</p>
+      <button id="reset-links-btn" class="reset-btn">Reset Search</button>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('links-search-input');
+      const clearBtn = document.getElementById('links-clear-btn');
+      const filterBtns = document.querySelectorAll('.pill-btn');
+      const linkCards = document.querySelectorAll('.link-card');
+      const categorySections = document.querySelectorAll('.category-section');
+      const visibleCountEl = document.getElementById('visible-count');
+      const noResultsEl = document.getElementById('no-links-results');
+      const queryTermEl = document.getElementById('query-term');
+      const resetBtn = document.getElementById('reset-links-btn');
+
+      if (!searchInput) return;
+
+      let activeFilter = 'all';
+
+      const indexedLinks = Array.from(linkCards).map(card => ({
+        name: card.getAttribute('data-name') || '',
+        desc: card.getAttribute('data-desc') || '',
+        tags: card.getAttribute('data-tags') || '',
+        category: card.getAttribute('data-cat') || '',
+        element: card,
+        section: card.closest('.category-section')
+      }));
+
+      // Focus hotkey '/'
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+          searchInput.blur();
+        }
+      });
+
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+        applyFilters();
+      });
+
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        applyFilters();
+        searchInput.focus();
+      });
+
+      resetBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        setActiveFilter('all');
+        applyFilters();
+      });
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.getAttribute('data-filter');
+          setActiveFilter(filter);
+          applyFilters();
+        });
+      });
+
+      function setActiveFilter(f) {
+        activeFilter = f;
+        filterBtns.forEach(b => {
+          if (b.getAttribute('data-filter') === f) {
+            b.classList.add('active');
+          } else {
+            b.classList.remove('active');
+          }
+        });
+      }
+
+      function applyFilters() {
+        const query = searchInput.value.trim().toLowerCase();
+        let visibleTotal = 0;
+
+        categorySections.forEach(section => {
+          const sectionCategory = section.getAttribute('data-category');
+          let sectionVisibleCount = 0;
+
+          const cardsInSection = section.querySelectorAll('.link-card');
+          cardsInSection.forEach(card => {
+            const name = card.getAttribute('data-name') || '';
+            const desc = card.getAttribute('data-desc') || '';
+            const tags = card.getAttribute('data-tags') || '';
+            const cardCategory = card.getAttribute('data-cat') || '';
+
+            const matchesCategory = activeFilter === 'all' || activeFilter === cardCategory;
+            const matchesQuery = !query || name.includes(query) || desc.includes(query) || tags.includes(query);
+
+            if (matchesCategory && matchesQuery) {
+              card.style.display = 'flex';
+              sectionVisibleCount++;
+              visibleTotal++;
+            } else {
+              card.style.display = 'none';
+            }
+          });
+
+          // Show/hide category section header based on visible children
+          if (sectionVisibleCount > 0) {
+            section.style.display = 'block';
+          } else {
+            section.style.display = 'none';
+          }
+        });
+
+        visibleCountEl.textContent = visibleTotal;
+
+        if (visibleTotal === 0) {
+          noResultsEl.style.display = 'block';
+          queryTermEl.textContent = searchInput.value.trim() || activeFilter;
+        } else {
+          noResultsEl.style.display = 'none';
+        }
+      }
+
+      applyFilters();
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .header-content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .page-header p {
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 650px;
+  }
+
+  /* Stats Bar */
+  .stats-bar {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .stat-pill {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+
+  .stat-num {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-heading);
+  }
+
+  .text-accent { color: var(--accent-color); }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  /* Control Bar & Search */
+  .control-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .search-input-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  #links-search-input {
+    width: 100%;
+    padding: 0.75rem 4rem 0.75rem 2.6rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-heading);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  #links-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  }
+
+  .clear-btn {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .search-shortcut {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .search-shortcut kbd {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+    color: var(--text-muted);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+
+  /* Filter Bar & Pills */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .pill-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pill-btn:hover {
+    color: var(--text-heading);
+    border-color: var(--text-muted);
+  }
+
+  .pill-btn.active {
+    background-color: rgba(88, 166, 255, 0.15);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    font-weight: 600;
+  }
+
+  .search-counter {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* Category Sections & Grid */
+  .categories-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .category-heading {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .link-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.85rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .link-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    background-color: rgba(88, 166, 255, 0.12);
+    color: var(--accent-color);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .link-url-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .link-url-meta:hover {
+    color: var(--text-heading);
+  }
+
+  .link-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .link-title a {
+    color: var(--text-heading);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .link-title a:hover {
+    color: var(--accent-color);
+  }
+
+  .link-desc {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-primary);
+    margin: 0;
+    flex-grow: 1;
+  }
+
+  .card-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+  }
+
+  .tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .visit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background-color: var(--bg-tertiary);
+    color: var(--accent-color);
+    border: 1px solid var(--border-color);
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .visit-btn:hover {
+    background-color: rgba(88, 166, 255, 0.15);
+    border-color: var(--accent-color);
+    text-decoration: none;
+  }
+
+  .no-results-card {
+    background-color: var(--bg-secondary);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .no-results-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .reset-btn {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    background-color: rgba(88, 166, 255, 0.15);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    padding: 0.4rem 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.75rem;
+  }
+</style>

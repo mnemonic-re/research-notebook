@@ -1,0 +1,1029 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import webFeedData from '../../../data/web_vuln_feed.json';
+
+interface VulnItem {
+  id: string;
+  title: string;
+  cve: string;
+  date: string;
+  platform: string;
+  component: string;
+  severity: string;
+  cvss?: number;
+  is_kev?: boolean;
+  has_poc?: boolean;
+  description: string;
+  link: string;
+  poc_link?: string;
+}
+
+const feedItems: VulnItem[] = webFeedData || [];
+
+// Calculate web stats
+const frameworkCount = feedItems.filter(i => {
+  const comp = (i.component || '').toLowerCase();
+  return comp.includes('spring') || comp.includes('django') || comp.includes('node') || comp.includes('express') || comp.includes('rails') || comp.includes('v8');
+}).length;
+const serverCount = feedItems.filter(i => {
+  const comp = (i.component || '').toLowerCase();
+  return comp.includes('apache') || comp.includes('nginx') || comp.includes('tomcat') || comp.includes('http');
+}).length;
+const pocCount = feedItems.filter(i => i.has_poc).length;
+const kevCount = feedItems.filter(i => i.is_kev).length;
+
+function getSeverityClass(severity: string) {
+  switch ((severity || '').toUpperCase()) {
+    case 'CRITICAL':
+      return 'sev-critical';
+    case 'HIGH':
+      return 'sev-high';
+    default:
+      return 'sev-medium';
+  }
+}
+---
+
+<BaseLayout title="Web Security Feed | Cybersecurity Research Notebook">
+  <div class="page-header">
+    <div class="header-content-wrapper">
+      <div>
+        <h1>Web Security Feed</h1>
+        <p>Automated web security advisories, framework zero-days, HTTP server exploits, and browser engine radar.</p>
+      </div>
+      <div class="feed-stats-bar">
+        <div class="stat-pill">
+          <span class="stat-num">{feedItems.length}</span>
+          <span class="stat-label">Total Web CVEs</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num text-framework">{frameworkCount}</span>
+          <span class="stat-label">Frameworks</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num text-server">{serverCount}</span>
+          <span class="stat-label">Servers</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num text-poc">{pocCount}</span>
+          <span class="stat-label">Has PoC</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Search & Control Bar -->
+  <div class="feed-control-bar">
+    <div class="search-input-container">
+      <div class="search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        id="web-feed-search-input" 
+        placeholder="Search web feed (e.g. Spring, Node.js, Apache, SSRF, SQLi, V8)..." 
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="button" id="web-search-clear-btn" class="clear-btn" aria-label="Clear search" style="display: none;">✕</button>
+      <div class="search-shortcut"><kbd>/</kbd></div>
+
+      <!-- Live Autocomplete Suggestion Dropdown -->
+      <div id="web-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;">
+        <div class="dropdown-header">Matching Web Vulnerabilities</div>
+        <ul id="web-autocomplete-list"></ul>
+      </div>
+    </div>
+
+    <!-- Category Filter Pills & Counter -->
+    <div class="filter-bar">
+      <div class="category-pills">
+        <button class="pill-btn active" data-filter="all">All ({feedItems.length})</button>
+        <button class="pill-btn" data-filter="frameworks">🌐 Frameworks ({frameworkCount})</button>
+        <button class="pill-btn" data-filter="servers">🚀 Web Servers ({serverCount})</button>
+        <button class="pill-btn" data-filter="poc">⚡ PoC Available ({pocCount})</button>
+        <button class="pill-btn" data-filter="kev">🔥 CISA KEV ({kevCount})</button>
+      </div>
+      <div class="search-counter">
+        Showing <span id="visible-count">{feedItems.length}</span> of {feedItems.length} web advisories
+      </div>
+    </div>
+  </div>
+
+  <div class="feed-grid" id="web-feed-list">
+    {feedItems.length === 0 ? (
+      <p class="empty-state">No web feed items loaded. Run <code>python scripts/fetch_vuln_feed.py</code> to populate feed.</p>
+    ) : (
+      feedItems.map((item) => (
+        <article 
+          class="feed-card card-web" 
+          id={item.id}
+          data-title={item.title.toLowerCase()}
+          data-cve={item.cve.toLowerCase()}
+          data-component={item.component.toLowerCase()}
+          data-desc={item.description.toLowerCase()}
+          data-poc={item.has_poc ? 'true' : 'false'}
+          data-kev={item.is_kev ? 'true' : 'false'}
+        >
+          <div class="card-top-bar">
+            <div class="cve-tag-group">
+              <span class="cve-badge">{item.cve}</span>
+              <span class="platform-pill pill-web">
+                🌐 Web / App
+              </span>
+              {item.is_kev && <span class="kev-badge">🔥 CISA KEV</span>}
+              {item.has_poc && <span class="poc-badge">⚡ PoC Code</span>}
+            </div>
+
+            <div class="severity-group">
+              <span class={`severity-badge ${getSeverityClass(item.severity)}`}>
+                {item.severity} {item.cvss ? `(${item.cvss})` : ''}
+              </span>
+              <span class="item-date">{item.date}</span>
+            </div>
+          </div>
+
+          <h3 class="feed-title">{item.title}</h3>
+          
+          <div class="component-meta">
+            <span class="meta-label">Affected Technology:</span>
+            <code>{item.component}</code>
+          </div>
+
+          <p class="feed-desc">{item.description}</p>
+
+          <div class="card-actions">
+            {item.poc_link && (
+              <a href={item.poc_link} target="_blank" rel="noopener noreferrer" class="feed-btn btn-poc">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
+                  <path d="M9 18c-4.51 2-5-2-7-2"></path>
+                </svg>
+                Explore PoC Repo
+              </a>
+            )}
+            <a href={item.link} target="_blank" rel="noopener noreferrer" class="feed-btn">
+              🔗 Advisory & NVD Details
+            </a>
+          </div>
+        </article>
+      ))
+    )}
+
+    <!-- Empty Search State -->
+    <div id="no-web-results" class="no-results-card" style="display: none;">
+      <div class="no-results-icon">🔍</div>
+      <h3>No web advisories matching "<span id="query-term"></span>"</h3>
+      <p>Try searching for terms like <code>Spring</code>, <code>Node.js</code>, <code>Apache</code>, <code>SSRF</code>, or <code>SQLi</code>.</p>
+      <button id="reset-web-btn" class="reset-btn">Reset Search</button>
+    </div>
+  </div>
+
+  <!-- Dynamic Pagination Controls -->
+  <div id="web-feed-pagination" class="feed-pagination-bar">
+    <div class="pagination-info">
+      Showing <span id="pag-start">1</span>–<span id="pag-end">50</span> of <span id="pag-total">50</span> advisories
+    </div>
+
+    <div class="pagination-nav">
+      <button id="pag-first" class="pag-btn" title="First Page">⏮ First</button>
+      <button id="pag-prev" class="pag-btn" title="Previous Page">◀ Prev</button>
+      <span class="pag-page-indicator">Page <strong id="pag-current">1</strong> of <strong id="pag-max">1</strong></span>
+      <button id="pag-next" class="pag-btn" title="Next Page">Next ▶</button>
+      <button id="pag-last" class="pag-btn" title="Last Page">Last ⏭</button>
+    </div>
+
+    <div class="pagination-per-page">
+      <label for="pag-size-select">Per page:</label>
+      <select id="pag-size-select" class="pag-select">
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+        <option value="all">All</option>
+      </select>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('web-feed-search-input');
+      const clearBtn = document.getElementById('web-search-clear-btn');
+      const dropdown = document.getElementById('web-autocomplete-dropdown');
+      const dropdownList = document.getElementById('web-autocomplete-list');
+      const filterBtns = document.querySelectorAll('.pill-btn');
+      const feedCards = document.querySelectorAll('.feed-card');
+      const visibleCountEl = document.getElementById('visible-count');
+      const noResultsEl = document.getElementById('no-web-results');
+      const queryTermEl = document.getElementById('query-term');
+      const resetBtn = document.getElementById('reset-web-btn');
+
+      // Pagination Elements
+      const paginationBar = document.getElementById('web-feed-pagination');
+      const pagStartEl = document.getElementById('pag-start');
+      const pagEndEl = document.getElementById('pag-end');
+      const pagTotalEl = document.getElementById('pag-total');
+      const pagCurrentEl = document.getElementById('pag-current');
+      const pagMaxEl = document.getElementById('pag-max');
+      const btnFirst = document.getElementById('pag-first');
+      const btnPrev = document.getElementById('pag-prev');
+      const btnNext = document.getElementById('pag-next');
+      const btnLast = document.getElementById('pag-last');
+      const pageSizeSelect = document.getElementById('pag-size-select');
+
+      if (!searchInput) return;
+
+      let activeFilter = 'all';
+      let currentPage = 1;
+      let itemsPerPage = 25;
+      let filteredItems = [];
+
+      const indexedFeed = Array.from(feedCards).map(card => ({
+        id: card.getAttribute('id'),
+        cve: card.getAttribute('data-cve') || '',
+        title: card.querySelector('.feed-title')?.textContent || '',
+        component: card.getAttribute('data-component') || '',
+        desc: card.getAttribute('data-desc') || '',
+        hasPoc: card.getAttribute('data-poc') === 'true',
+        isKev: card.getAttribute('data-kev') === 'true',
+        element: card
+      }));
+
+      // Focus hotkey ('/' key)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+          closeDropdown();
+        }
+      });
+
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        
+        if (query.length > 0) {
+          clearBtn.style.display = 'block';
+          renderAutocomplete(query);
+        } else {
+          clearBtn.style.display = 'none';
+          closeDropdown();
+        }
+        
+        currentPage = 1;
+        applyFiltersAndPaginate();
+      });
+
+      searchInput.addEventListener('focus', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length > 0) renderAutocomplete(query);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-input-container')) {
+          closeDropdown();
+        }
+      });
+
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        closeDropdown();
+        currentPage = 1;
+        applyFiltersAndPaginate();
+        searchInput.focus();
+      });
+
+      resetBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        closeDropdown();
+        setActiveFilter('all');
+        currentPage = 1;
+        applyFiltersAndPaginate();
+      });
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.getAttribute('data-filter');
+          setActiveFilter(filter);
+          currentPage = 1;
+          applyFiltersAndPaginate();
+        });
+      });
+
+      pageSizeSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        itemsPerPage = val === 'all' ? 'all' : parseInt(val, 10);
+        currentPage = 1;
+        applyFiltersAndPaginate();
+      });
+
+      btnFirst.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage = 1;
+          renderPage();
+        }
+      });
+
+      btnPrev.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage();
+        }
+      });
+
+      btnNext.addEventListener('click', () => {
+        const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredItems.length / itemsPerPage) || 1;
+        if (currentPage < maxPages) {
+          currentPage++;
+          renderPage();
+        }
+      });
+
+      btnLast.addEventListener('click', () => {
+        const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredItems.length / itemsPerPage) || 1;
+        if (currentPage < maxPages) {
+          currentPage = maxPages;
+          renderPage();
+        }
+      });
+
+      function setActiveFilter(f) {
+        activeFilter = f;
+        filterBtns.forEach(b => {
+          if (b.getAttribute('data-filter') === f) {
+            b.classList.add('active');
+          } else {
+            b.classList.remove('active');
+          }
+        });
+      }
+
+      function applyFiltersAndPaginate() {
+        const query = searchInput.value.trim().toLowerCase();
+
+        filteredItems = indexedFeed.filter(item => {
+          let matchesFilter = true;
+          if (activeFilter === 'frameworks') {
+            matchesFilter = item.component.includes('spring') || item.component.includes('django') || item.component.includes('node') || item.component.includes('express') || item.component.includes('v8');
+          } else if (activeFilter === 'servers') {
+            matchesFilter = item.component.includes('apache') || item.component.includes('nginx') || item.component.includes('tomcat') || item.component.includes('http');
+          } else if (activeFilter === 'poc') {
+            matchesFilter = item.hasPoc;
+          } else if (activeFilter === 'kev') {
+            matchesFilter = item.isKev;
+          }
+
+          const matchesQuery = !query || 
+            item.cve.includes(query) || 
+            item.title.toLowerCase().includes(query) || 
+            item.component.includes(query) || 
+            item.desc.includes(query);
+
+          return matchesFilter && matchesQuery;
+        });
+
+        visibleCountEl.textContent = filteredItems.length;
+
+        if (filteredItems.length === 0) {
+          noResultsEl.style.display = 'block';
+          queryTermEl.textContent = searchInput.value.trim() || activeFilter;
+          paginationBar.style.display = 'none';
+          indexedFeed.forEach(item => item.element.style.display = 'none');
+        } else {
+          noResultsEl.style.display = 'none';
+          renderPage();
+        }
+      }
+
+      function renderPage() {
+        const total = filteredItems.length;
+        let perPage = itemsPerPage === 'all' ? total : itemsPerPage;
+        const maxPages = Math.ceil(total / perPage) || 1;
+
+        if (currentPage > maxPages) currentPage = maxPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * perPage;
+        const endIdx = itemsPerPage === 'all' ? total : Math.min(startIdx + perPage, total);
+
+        const visibleSet = new Set(filteredItems.slice(startIdx, endIdx));
+
+        indexedFeed.forEach(item => {
+          if (visibleSet.has(item)) {
+            item.element.style.display = 'flex';
+          } else {
+            item.element.style.display = 'none';
+          }
+        });
+
+        pagStartEl.textContent = total === 0 ? 0 : startIdx + 1;
+        pagEndEl.textContent = endIdx;
+        pagTotalEl.textContent = total;
+        pagCurrentEl.textContent = currentPage;
+        pagMaxEl.textContent = maxPages;
+
+        btnFirst.disabled = currentPage === 1;
+        btnPrev.disabled = currentPage === 1;
+        btnNext.disabled = currentPage === maxPages || maxPages === 0;
+        btnLast.disabled = currentPage === maxPages || maxPages === 0;
+
+        paginationBar.style.display = total > 0 ? 'flex' : 'none';
+      }
+
+      function renderAutocomplete(query) {
+        const matches = indexedFeed.filter(item => {
+          return item.cve.includes(query) || 
+                 item.title.toLowerCase().includes(query) || 
+                 item.component.includes(query);
+        });
+
+        if (matches.length === 0) {
+          closeDropdown();
+          return;
+        }
+
+        dropdownList.innerHTML = '';
+        matches.slice(0, 6).forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'autocomplete-item';
+          
+          li.innerHTML = `
+            <div class="autocomplete-title"><strong>${item.cve.toUpperCase()}</strong>: ${item.title}</div>
+            <div class="autocomplete-meta">WEB • ${item.component}</div>
+          `;
+
+          li.addEventListener('click', () => {
+            closeDropdown();
+            const itemIdx = filteredItems.indexOf(item);
+            if (itemIdx !== -1) {
+              const perPage = itemsPerPage === 'all' ? filteredItems.length : itemsPerPage;
+              currentPage = Math.floor(itemIdx / perPage) + 1;
+              renderPage();
+            }
+            item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            item.element.classList.add('highlight-flash');
+            setTimeout(() => {
+              item.element.classList.remove('highlight-flash');
+            }, 1800);
+          });
+
+          dropdownList.appendChild(li);
+        });
+
+        dropdown.style.display = 'block';
+      }
+
+      function closeDropdown() {
+        dropdown.style.display = 'none';
+      }
+
+      applyFiltersAndPaginate();
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .header-content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .page-header p {
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 650px;
+  }
+
+  /* Stats Bar */
+  .feed-stats-bar {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .stat-pill {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+
+  .stat-num {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-heading);
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  .text-framework { color: #38bdf8; }
+  .text-server { color: #a855f7; }
+  .text-poc { color: #d29922; }
+
+  /* Control Bar & Search */
+  .feed-control-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .search-input-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  #web-feed-search-input {
+    width: 100%;
+    padding: 0.75rem 4rem 0.75rem 2.6rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-heading);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  #web-feed-search-input:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  }
+
+  .clear-btn {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .search-shortcut {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .search-shortcut kbd {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+    color: var(--text-muted);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+
+  /* Live Autocomplete Dropdown */
+  .autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid #38bdf8;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .dropdown-header {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 0.5rem 0.85rem;
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  #web-autocomplete-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .autocomplete-item {
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.12s ease;
+  }
+
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+
+  .autocomplete-item:hover {
+    background-color: var(--bg-tertiary);
+  }
+
+  .autocomplete-title {
+    font-size: 0.88rem;
+    color: var(--text-heading);
+  }
+
+  .autocomplete-meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  /* Filter Bar & Pills */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .pill-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pill-btn:hover {
+    color: var(--text-heading);
+    border-color: var(--text-muted);
+  }
+
+  .pill-btn.active {
+    background-color: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: #38bdf8;
+    font-weight: 600;
+  }
+
+  .search-counter {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* Feed Grid & Cards */
+  .feed-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .feed-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .feed-card:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .feed-card.highlight-flash {
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+  }
+
+  .card-web { border-left: 4px solid #38bdf8; }
+
+  .card-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .cve-tag-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .cve-badge {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.85rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border: 1px solid var(--border-color);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .platform-pill {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+  }
+
+  .pill-web {
+    background-color: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+
+  .kev-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    background-color: rgba(248, 81, 73, 0.12);
+    color: #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+  }
+
+  .poc-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    background-color: rgba(210, 153, 34, 0.12);
+    color: #d29922;
+    border: 1px solid rgba(210, 153, 34, 0.3);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+  }
+
+  .severity-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .severity-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .sev-critical {
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.4);
+  }
+
+  .sev-high {
+    background-color: rgba(210, 153, 34, 0.15);
+    color: #d29922;
+    border: 1px solid rgba(210, 153, 34, 0.4);
+  }
+
+  .sev-medium {
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+  }
+
+  .item-date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .feed-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin: 0;
+  }
+
+  .component-meta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .feed-desc {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+  }
+
+  .feed-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    background-color: var(--bg-tertiary);
+    color: #38bdf8;
+    border: 1px solid var(--border-color);
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .feed-btn:hover {
+    border-color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.12);
+    text-decoration: none;
+  }
+
+  .btn-poc {
+    background-color: rgba(210, 153, 34, 0.12);
+    color: #d29922;
+    border-color: rgba(210, 153, 34, 0.35);
+  }
+
+  .btn-poc:hover {
+    background-color: rgba(210, 153, 34, 0.25);
+    border-color: #d29922;
+  }
+
+  .no-results-card {
+    background-color: var(--bg-secondary);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .no-results-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .reset-btn {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    background-color: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid #38bdf8;
+    padding: 0.4rem 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.75rem;
+  }
+
+  .empty-state {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Pagination Bar Styles */
+  .feed-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem 1.25rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+
+  .pagination-info {
+    color: var(--text-muted);
+  }
+
+  .pagination-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .pag-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border: 1px solid var(--border-color);
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pag-btn:hover:not(:disabled) {
+    background-color: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
+
+  .pag-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .pag-page-indicator {
+    padding: 0 0.5rem;
+    color: var(--text-muted);
+  }
+
+  .pag-page-indicator strong {
+    color: #38bdf8;
+  }
+
+  .pagination-per-page {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+  }
+
+  .pag-select {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .pag-select:focus {
+    outline: none;
+    border-color: #38bdf8;
+  }
+</style>

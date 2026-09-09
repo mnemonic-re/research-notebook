@@ -17,10 +17,10 @@ draft: false
 
 Static code analysis and decompilation snippets have transformed vulnerability research and malware analysis, but they share a fundamental flaw: **they lack dynamic execution context**. Static analysis cannot observe live heap allocations, inspect unbacked thread return addresses in real time, or verify how registers evolve across loop iterations.
 
-To bridge this gap, we built **WinDbgX-MCP** — an open-source Model Context Protocol (MCP) server that connects AI assistants (Google Antigravity, VS Code Cline, Claude Desktop, Cursor, Codex, and local LLMs) directly into live **WinDbg** and **WinDbgX** (`DbgX.Shell.exe`) debugging sessions across user-mode binaries, kernel drivers, remote debug servers, and crash dumps.
+To bridge this gap, we built **WinDbgX-MCP**,  an open source Model Context Protocol (MCP) server that connects AI assistants (Google Antigravity, VS Code Cline, Claude Desktop, Cursor, Codex, and local LLMs) directly into live **WinDbg** and **WinDbgX** (`DbgX.Shell.exe`) debugging sessions across usermode binaries, kernel drivers, remote debug servers, and crash dumps.
 
 <Note>
-WinDbgX-MCP packages both Python server management and pre-compiled 64-bit and 32-bit native extension DLLs (<code>de.dll</code>) into a single, zero-configuration <code>pip</code> wheel with automatic binary path discovery.
+WinDbgX-MCP packages both Python server management and pre-compiled 64bit and 32bit native extension DLLs (<code>de.dll</code>) into a single, zero configuration <code>pip</code> wheel with automatic binary path discovery.
 </Note>
 
 ---
@@ -46,7 +46,7 @@ WinDbgX-MCP acts as an intermediary bridge between Model Context Protocol host c
 
 ### Transport Modes
 1. **Stdio Mode (IPC)**: Launched automatically by IDE clients (Antigravity, Cursor, Cline) as a background process using standard input/output. Zero network exposure or firewall prompt requirements.
-2. **SSE HTTP Network Mode (`--sse`)**: Listens on a TCP port (e.g. `8000`) streaming events and JSON-RPC endpoints for remote AI execution or multi-machine lab environments.
+2. **SSE HTTP Network Mode (`--sse`)**: Listens on a TCP port (e.g. `8000`) streaming events and JSON-RPC endpoints for remote AI execution or multi machine lab environments.
 
 <Command>
 pip install https://raw.githubusercontent.com/mnemonic-re/WinDbgX-MCP/main/WinDbgMCP/dist/windbg_mcp-0.1.0-py3-none-any.whl
@@ -113,7 +113,7 @@ ntdll!DbgUiRemoteBreakin+0x4e:
 
 ## DebugExt (`de.dll`) Analysis Engine
 
-WinDbgX-MCP integrates native C++ extensions ported from **DebugExt** (`de.dll`), adding high-level reverse-engineering bang commands directly to standard `cdb` and `kd` instances:
+WinDbgX-MCP integrates native C++ extensions ported from **DebugExt** (`de.dll`), adding high level reverse engineering commands directly to standard `cdb` and `kd` instances:
 
 | Command | Category | Description |
 | :--- | :--- | :--- |
@@ -145,7 +145,7 @@ WinDbgX-MCP integrates native C++ extensions ported from **DebugExt** (`de.dll`)
 
 ## Live Case Study: Reversing `GigaApp.exe`
 
-To evaluate WinDbgX-MCP's dynamic reasoning performance, we benchmarked an automated key validation reverse-engineering task on `GigaApp.exe`.
+To evaluate WinDbgX-MCP's dynamic reasoning performance, we benchmarked an automated key validation reverse engineering task on `GigaApp.exe`.
 
 <SampleCard 
   name="GigaApp.exe" 
@@ -185,7 +185,7 @@ The AI agent was strictly restricted from reading source files or repository cod
 </Finding>
 
 
-<Report title="AI Reverse Engineering Scratchpad" expandable={true} summary="Click to view full step-by-step assembly scratchpad log...">
+<Report title="AI Reverse Engineering Scratchpad" expandable={true} summary="Click to view full step by step assembly scratchpad log...">
 
 # Scratchpad: GigaApp.exe Binary Reverse Engineering
 

@@ -1,0 +1,1071 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import criticalFeedData from '../../../data/critical_vuln_feed.json';
+
+interface VulnItem {
+  id: string;
+  title: string;
+  cve: string;
+  date: string;
+  platform: string;
+  component: string;
+  severity: string;
+  cvss?: number;
+  is_kev?: boolean;
+  has_poc?: boolean;
+  description: string;
+  link: string;
+  poc_link?: string;
+}
+
+const feedItems: VulnItem[] = criticalFeedData || [];
+
+// Calculate stats
+const maxCvssCount = feedItems.filter(i => (i.cvss || 0) >= 9.8).length;
+const kevCount = feedItems.filter(i => i.is_kev).length;
+const pocCount = feedItems.filter(i => i.has_poc).length;
+
+function getSeverityClass(severity: string) {
+  switch ((severity || '').toUpperCase()) {
+    case 'CRITICAL':
+      return 'sev-critical';
+    case 'HIGH':
+      return 'sev-high';
+    default:
+      return 'sev-medium';
+  }
+}
+---
+
+<BaseLayout title="Critical Zero-Days & Emergency Radar (DEFCON 1) | CyberSec Notebook">
+  <!-- Pinned Emergency Hazard Alert Banner -->
+  <div class="defcon-alert-banner">
+    <div class="defcon-pulse-icon">☢️</div>
+    <div class="defcon-banner-text">
+      <strong>DEFCON 1 EMERGENCY THREAT RADAR ACTIVE</strong> — Tracking active unauthenticated RCEs, zero-days, and weaponized exploit drops.
+    </div>
+  </div>
+
+  <div class="page-header">
+    <div class="header-content-wrapper">
+      <div>
+        <h1 class="critical-heading">Critical Zero-Days</h1>
+        <p>Critical-level vulnerabilities (CVSS 9.5+), unauthenticated RCEs, and active wild zero-days.</p>
+      </div>
+      <div class="feed-stats-bar">
+        <div class="stat-pill border-red">
+          <span class="stat-num text-red">{feedItems.length}</span>
+          <span class="stat-label">DEFCON 1 CVEs</span>
+        </div>
+        <div class="stat-pill border-red">
+          <span class="stat-num text-red">{maxCvssCount}</span>
+          <span class="stat-label">CVSS 9.8+</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num text-kev">{kevCount}</span>
+          <span class="stat-label">Active KEV</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num text-poc">{pocCount}</span>
+          <span class="stat-label">Has PoC</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Search & Control Bar -->
+  <div class="feed-control-bar">
+    <div class="search-input-container">
+      <div class="search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        id="crit-feed-search-input" 
+        placeholder="Search critical zero-days (e.g. Log4Shell, EternalBlue, Systemd, RCE, CVE-2026)..." 
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="button" id="crit-search-clear-btn" class="clear-btn" aria-label="Clear search" style="display: none;">✕</button>
+      <div class="search-shortcut"><kbd>/</kbd></div>
+
+      <!-- Live Autocomplete Suggestion Dropdown -->
+      <div id="crit-autocomplete-dropdown" class="autocomplete-dropdown" style="display: none;">
+        <div class="dropdown-header">Matching Emergency Advisories</div>
+        <ul id="crit-autocomplete-list"></ul>
+      </div>
+    </div>
+
+    <!-- Category Filter Pills & Counter -->
+    <div class="filter-bar">
+      <div class="category-pills">
+        <button class="pill-btn active" data-filter="all">All ({feedItems.length})</button>
+        <button class="pill-btn pill-crit-active" data-filter="critical">🚨 Critical (CVSS 9.8+)</button>
+        <button class="pill-btn" data-filter="kev">🔥 CISA KEV ({kevCount})</button>
+        <button class="pill-btn" data-filter="poc">⚡ PoC Available ({pocCount})</button>
+      </div>
+      <div class="search-counter">
+        Showing <span id="visible-count">{feedItems.length}</span> of {feedItems.length} critical advisories
+      </div>
+    </div>
+  </div>
+
+  <div class="feed-grid" id="crit-feed-list">
+    {feedItems.length === 0 ? (
+      <p class="empty-state">No critical feed items loaded. Run <code>python scripts/fetch_vuln_feed.py</code> to populate feed.</p>
+    ) : (
+      feedItems.map((item) => (
+        <article 
+          class="feed-card card-critical" 
+          id={item.id}
+          data-title={item.title.toLowerCase()}
+          data-cve={item.cve.toLowerCase()}
+          data-component={item.component.toLowerCase()}
+          data-desc={item.description.toLowerCase()}
+          data-cvss={item.cvss || 0}
+          data-poc={item.has_poc ? 'true' : 'false'}
+          data-kev={item.is_kev ? 'true' : 'false'}
+        >
+          <div class="card-top-bar">
+            <div class="cve-tag-group">
+              <span class="cve-badge badge-red">{item.cve}</span>
+              <span class="platform-pill pill-defcon">
+                🚨 DEFCON 1
+              </span>
+              {item.is_kev && <span class="kev-badge">🔥 ACTIVE IN WILD</span>}
+              {item.has_poc && <span class="poc-badge">⚡ WEAPONIZED POC</span>}
+            </div>
+
+            <div class="severity-group">
+              <span class="severity-badge sev-critical">
+                CRITICAL {item.cvss ? `(${item.cvss})` : '(10.0)'}
+              </span>
+              <span class="item-date">{item.date}</span>
+            </div>
+          </div>
+
+          <h3 class="feed-title text-heading-red">{item.title}</h3>
+          
+          <div class="component-meta">
+            <span class="meta-label">Target Subsystem:</span>
+            <code>{item.component}</code>
+          </div>
+
+          <p class="feed-desc">{item.description}</p>
+
+          <div class="card-actions">
+            {item.poc_link && (
+              <a href={item.poc_link} target="_blank" rel="noopener noreferrer" class="feed-btn btn-poc-red">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
+                  <path d="M9 18c-4.51 2-5-2-7-2"></path>
+                </svg>
+                Explore Exploit Payload
+              </a>
+            )}
+            <a href={item.link} target="_blank" rel="noopener noreferrer" class="feed-btn btn-red-outline">
+              🔗 Advisory & Patch Guidance
+            </a>
+          </div>
+        </article>
+      ))
+    )}
+
+    <!-- Empty Search State -->
+    <div id="no-crit-results" class="no-results-card" style="display: none;">
+      <div class="no-results-icon">🚨</div>
+      <h3>No critical zero-days matching "<span id="query-term"></span>"</h3>
+      <p>Try searching for terms like <code>Log4Shell</code>, <code>EternalBlue</code>, <code>Heartbleed</code>, <code>RCE</code>, or <code>CVE-2026</code>.</p>
+      <button id="reset-crit-btn" class="reset-btn btn-red">Reset Search</button>
+    </div>
+  </div>
+
+  <!-- Dynamic Pagination Controls -->
+  <div id="crit-feed-pagination" class="feed-pagination-bar border-red-dim">
+    <div class="pagination-info">
+      Showing <span id="pag-start">1</span>–<span id="pag-end">25</span> of <span id="pag-total">25</span> nuclear advisories
+    </div>
+
+    <div class="pagination-nav">
+      <button id="pag-first" class="pag-btn" title="First Page">⏮ First</button>
+      <button id="pag-prev" class="pag-btn" title="Previous Page">◀ Prev</button>
+      <span class="pag-page-indicator">Page <strong id="pag-current" class="text-red">1</strong> of <strong id="pag-max" class="text-red">1</strong></span>
+      <button id="pag-next" class="pag-btn" title="Next Page">Next ▶</button>
+      <button id="pag-last" class="pag-btn" title="Last Page">Last ⏭</button>
+    </div>
+
+    <div class="pagination-per-page">
+      <label for="pag-size-select">Per page:</label>
+      <select id="pag-size-select" class="pag-select">
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+        <option value="all">All</option>
+      </select>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('crit-feed-search-input');
+      const clearBtn = document.getElementById('crit-search-clear-btn');
+      const dropdown = document.getElementById('crit-autocomplete-dropdown');
+      const dropdownList = document.getElementById('crit-autocomplete-list');
+      const filterBtns = document.querySelectorAll('.pill-btn');
+      const feedCards = document.querySelectorAll('.feed-card');
+      const visibleCountEl = document.getElementById('visible-count');
+      const noResultsEl = document.getElementById('no-crit-results');
+      const queryTermEl = document.getElementById('query-term');
+      const resetBtn = document.getElementById('reset-crit-btn');
+
+      // Pagination Elements
+      const paginationBar = document.getElementById('crit-feed-pagination');
+      const pagStartEl = document.getElementById('pag-start');
+      const pagEndEl = document.getElementById('pag-end');
+      const pagTotalEl = document.getElementById('pag-total');
+      const pagCurrentEl = document.getElementById('pag-current');
+      const pagMaxEl = document.getElementById('pag-max');
+      const btnFirst = document.getElementById('pag-first');
+      const btnPrev = document.getElementById('pag-prev');
+      const btnNext = document.getElementById('pag-next');
+      const btnLast = document.getElementById('pag-last');
+      const pageSizeSelect = document.getElementById('pag-size-select');
+
+      if (!searchInput) return;
+
+      let activeFilter = 'all';
+      let currentPage = 1;
+      let itemsPerPage = 25; // default 25 per page
+      let filteredItems = [];
+
+      const indexedFeed = Array.from(feedCards).map(card => ({
+        id: card.getAttribute('id'),
+        cve: card.getAttribute('data-cve') || '',
+        title: card.querySelector('.feed-title')?.textContent || '',
+        component: card.getAttribute('data-component') || '',
+        desc: card.getAttribute('data-desc') || '',
+        cvss: parseFloat(card.getAttribute('data-cvss') || '0'),
+        hasPoc: card.getAttribute('data-poc') === 'true',
+        isKev: card.getAttribute('data-kev') === 'true',
+        element: card
+      }));
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+          closeDropdown();
+        }
+      });
+
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        
+        if (query.length > 0) {
+          clearBtn.style.display = 'block';
+          renderAutocomplete(query);
+        } else {
+          clearBtn.style.display = 'none';
+          closeDropdown();
+        }
+        
+        currentPage = 1;
+        applyFiltersAndPaginate();
+      });
+
+      searchInput.addEventListener('focus', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length > 0) renderAutocomplete(query);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-input-container')) {
+          closeDropdown();
+        }
+      });
+
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        closeDropdown();
+        currentPage = 1;
+        applyFiltersAndPaginate();
+        searchInput.focus();
+      });
+
+      resetBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        closeDropdown();
+        setActiveFilter('all');
+        currentPage = 1;
+        applyFiltersAndPaginate();
+      });
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.getAttribute('data-filter');
+          setActiveFilter(filter);
+          currentPage = 1;
+          applyFiltersAndPaginate();
+        });
+      });
+
+      pageSizeSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        itemsPerPage = val === 'all' ? 'all' : parseInt(val, 10);
+        currentPage = 1;
+        applyFiltersAndPaginate();
+      });
+
+      btnFirst.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage = 1;
+          renderPage();
+        }
+      });
+
+      btnPrev.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage();
+        }
+      });
+
+      btnNext.addEventListener('click', () => {
+        const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredItems.length / itemsPerPage) || 1;
+        if (currentPage < maxPages) {
+          currentPage++;
+          renderPage();
+        }
+      });
+
+      btnLast.addEventListener('click', () => {
+        const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(filteredItems.length / itemsPerPage) || 1;
+        if (currentPage < maxPages) {
+          currentPage = maxPages;
+          renderPage();
+        }
+      });
+
+      function setActiveFilter(f) {
+        activeFilter = f;
+        filterBtns.forEach(b => {
+          if (b.getAttribute('data-filter') === f) {
+            b.classList.add('active');
+          } else {
+            b.classList.remove('active');
+          }
+        });
+      }
+
+      function applyFiltersAndPaginate() {
+        const query = searchInput.value.trim().toLowerCase();
+
+        filteredItems = indexedFeed.filter(item => {
+          let matchesFilter = true;
+          if (activeFilter === 'critical') {
+            matchesFilter = item.cvss >= 9.8;
+          } else if (activeFilter === 'poc') {
+            matchesFilter = item.hasPoc;
+          } else if (activeFilter === 'kev') {
+            matchesFilter = item.isKev;
+          }
+
+          const matchesQuery = !query || 
+            item.cve.includes(query) || 
+            item.title.toLowerCase().includes(query) || 
+            item.component.includes(query) || 
+            item.desc.includes(query);
+
+          return matchesFilter && matchesQuery;
+        });
+
+        visibleCountEl.textContent = filteredItems.length;
+
+        if (filteredItems.length === 0) {
+          noResultsEl.style.display = 'block';
+          queryTermEl.textContent = searchInput.value.trim() || activeFilter;
+          paginationBar.style.display = 'none';
+          indexedFeed.forEach(item => item.element.style.display = 'none');
+        } else {
+          noResultsEl.style.display = 'none';
+          renderPage();
+        }
+      }
+
+      function renderPage() {
+        const total = filteredItems.length;
+        let perPage = itemsPerPage === 'all' ? total : itemsPerPage;
+        const maxPages = Math.ceil(total / perPage) || 1;
+
+        if (currentPage > maxPages) currentPage = maxPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * perPage;
+        const endIdx = itemsPerPage === 'all' ? total : Math.min(startIdx + perPage, total);
+
+        const visibleSet = new Set(filteredItems.slice(startIdx, endIdx));
+
+        indexedFeed.forEach(item => {
+          if (visibleSet.has(item)) {
+            item.element.style.display = 'flex';
+          } else {
+            item.element.style.display = 'none';
+          }
+        });
+
+        pagStartEl.textContent = total === 0 ? 0 : startIdx + 1;
+        pagEndEl.textContent = endIdx;
+        pagTotalEl.textContent = total;
+        pagCurrentEl.textContent = currentPage;
+        pagMaxEl.textContent = maxPages;
+
+        btnFirst.disabled = currentPage === 1;
+        btnPrev.disabled = currentPage === 1;
+        btnNext.disabled = currentPage === maxPages || maxPages === 0;
+        btnLast.disabled = currentPage === maxPages || maxPages === 0;
+
+        paginationBar.style.display = total > 0 ? 'flex' : 'none';
+      }
+
+      function renderAutocomplete(query) {
+        const matches = indexedFeed.filter(item => {
+          return item.cve.includes(query) || 
+                 item.title.toLowerCase().includes(query) || 
+                 item.component.includes(query);
+        });
+
+        if (matches.length === 0) {
+          closeDropdown();
+          return;
+        }
+
+        dropdownList.innerHTML = '';
+        matches.slice(0, 6).forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'autocomplete-item';
+          
+          li.innerHTML = `
+            <div class="autocomplete-title"><strong>${item.cve.toUpperCase()}</strong>: ${item.title}</div>
+            <div class="autocomplete-meta">DEFCON 1 • ${item.component}</div>
+          `;
+
+          li.addEventListener('click', () => {
+            closeDropdown();
+            const itemIdx = filteredItems.indexOf(item);
+            if (itemIdx !== -1) {
+              const perPage = itemsPerPage === 'all' ? filteredItems.length : itemsPerPage;
+              currentPage = Math.floor(itemIdx / perPage) + 1;
+              renderPage();
+            }
+            item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            item.element.classList.add('highlight-flash-red');
+            setTimeout(() => {
+              item.element.classList.remove('highlight-flash-red');
+            }, 1800);
+          });
+
+          dropdownList.appendChild(li);
+        });
+
+        dropdown.style.display = 'block';
+      }
+
+      function closeDropdown() {
+        dropdown.style.display = 'none';
+      }
+
+      applyFiltersAndPaginate();
+    });
+  </script>
+</BaseLayout>
+
+<style>
+  /* Hazard Banner */
+  .defcon-alert-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(90deg, rgba(248, 81, 73, 0.25) 0%, rgba(248, 81, 73, 0.08) 100%);
+    border: 1px solid rgba(248, 81, 73, 0.5);
+    border-radius: 8px;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 0 15px rgba(248, 81, 73, 0.2);
+  }
+
+  .defcon-pulse-icon {
+    font-size: 1.5rem;
+    animation: pulse 1.8s infinite ease-in-out;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .defcon-banner-text {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    color: #f85149;
+    line-height: 1.4;
+  }
+
+  .page-header {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .header-content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .critical-heading {
+    font-size: 2rem;
+    margin-bottom: 0.3rem;
+    color: #f85149;
+  }
+
+  .page-header p {
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 650px;
+  }
+
+  /* Stats Bar */
+  .feed-stats-bar {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .stat-pill {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+
+  .border-red {
+    border-color: rgba(248, 81, 73, 0.4);
+  }
+
+  .stat-num {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-heading);
+  }
+
+  .text-red { color: #f85149; }
+  .text-kev { color: #f85149; }
+  .text-poc { color: #d29922; }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  /* Control Bar & Search */
+  .feed-control-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .search-input-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  #crit-feed-search-input {
+    width: 100%;
+    padding: 0.75rem 4rem 0.75rem 2.6rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-heading);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  #crit-feed-search-input:focus {
+    outline: none;
+    border-color: #f85149;
+    box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.18);
+  }
+
+  .clear-btn {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .search-shortcut {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .search-shortcut kbd {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+    color: var(--text-muted);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+
+  /* Live Autocomplete Dropdown */
+  .autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid #f85149;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .dropdown-header {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #f85149;
+    padding: 0.5rem 0.85rem;
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  #crit-autocomplete-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .autocomplete-item {
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.12s ease;
+  }
+
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+
+  .autocomplete-item:hover {
+    background-color: rgba(248, 81, 73, 0.12);
+  }
+
+  .autocomplete-title {
+    font-size: 0.88rem;
+    color: var(--text-heading);
+  }
+
+  .autocomplete-meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: #f85149;
+  }
+
+  /* Filter Bar & Pills */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .pill-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pill-btn:hover {
+    color: var(--text-heading);
+    border-color: var(--text-muted);
+  }
+
+  .pill-btn.active {
+    background-color: rgba(248, 81, 73, 0.18);
+    color: #f85149;
+    border-color: #f85149;
+    font-weight: 600;
+  }
+
+  .search-counter {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* Feed Grid & Cards */
+  .feed-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .feed-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-critical {
+    border-left: 4px solid #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.35);
+  }
+
+  .card-critical:hover {
+    border-color: #f85149;
+    box-shadow: 0 4px 20px rgba(248, 81, 73, 0.25);
+  }
+
+  .feed-card.highlight-flash-red {
+    border-color: #f85149 !important;
+    box-shadow: 0 0 20px rgba(248, 81, 73, 0.45);
+  }
+
+  .card-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .cve-tag-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .cve-badge {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.85rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border: 1px solid var(--border-color);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .badge-red {
+    border-color: rgba(248, 81, 73, 0.5);
+    color: #f85149;
+  }
+
+  .platform-pill {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+  }
+
+  .pill-defcon {
+    background-color: rgba(248, 81, 73, 0.18);
+    color: #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.4);
+    font-weight: 700;
+  }
+
+  .kev-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border: 1px solid rgba(248, 81, 73, 0.4);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+  }
+
+  .poc-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    background-color: rgba(210, 153, 34, 0.12);
+    color: #d29922;
+    border: 1px solid rgba(210, 153, 34, 0.3);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+  }
+
+  .severity-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .severity-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .sev-critical {
+    background-color: rgba(248, 81, 73, 0.25);
+    color: #f85149;
+    border: 1px solid #f85149;
+    box-shadow: 0 0 10px rgba(248, 81, 73, 0.3);
+  }
+
+  .item-date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .feed-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin: 0;
+  }
+
+  .text-heading-red {
+    color: #f85149;
+  }
+
+  .component-meta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .feed-desc {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+  }
+
+  .feed-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    background-color: var(--bg-tertiary);
+    color: var(--accent-color);
+    border: 1px solid var(--border-color);
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .btn-red-outline {
+    color: #f85149;
+    border-color: rgba(248, 81, 73, 0.4);
+  }
+
+  .btn-red-outline:hover {
+    background-color: rgba(248, 81, 73, 0.15);
+    border-color: #f85149;
+    text-decoration: none;
+  }
+
+  .btn-poc-red {
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border-color: rgba(248, 81, 73, 0.5);
+  }
+
+  .btn-poc-red:hover {
+    background-color: rgba(248, 81, 73, 0.3);
+    border-color: #f85149;
+  }
+
+  .no-results-card {
+    background-color: var(--bg-secondary);
+    border: 1px dashed rgba(248, 81, 73, 0.5);
+    border-radius: 8px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .no-results-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .reset-btn {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border: 1px solid #f85149;
+    padding: 0.4rem 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.75rem;
+  }
+
+  .empty-state {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Pagination Bar Styles */
+  .feed-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem 1.25rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+
+  .border-red-dim {
+    border-color: rgba(248, 81, 73, 0.35);
+  }
+
+  .pagination-info {
+    color: var(--text-muted);
+  }
+
+  .pagination-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .pag-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border: 1px solid var(--border-color);
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pag-btn:hover:not(:disabled) {
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border-color: #f85149;
+  }
+
+  .pag-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .pag-page-indicator {
+    padding: 0 0.5rem;
+    color: var(--text-muted);
+  }
+
+  .pagination-per-page {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+  }
+
+  .pag-select {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    background-color: var(--bg-tertiary);
+    color: var(--text-heading);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .pag-select:focus {
+    outline: none;
+    border-color: #f85149;
+  }
+</style>

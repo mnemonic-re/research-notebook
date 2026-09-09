@@ -1,5 +1,19 @@
 [
   {
+    "id": "tool-1788950030575",
+    "name": "IDA Scripts",
+    "status": "Released",
+    "category": "IDA",
+    "description": "Various IDA Scripts that help with small tasks.",
+    "note": "",
+    "links": [
+      {
+        "label": "Github Repo",
+        "url": "https://github.com/mnemonic-re/ida_scripts"
+      }
+    ]
+  },
+  {
     "id": "tool-1787438530082",
     "name": "WinDbgX MCP",
     "status": "In Development",

@@ -5,6 +5,7 @@
 /scratch/
 /experiments/
 /cms/
+/scripts/
 
 # Build & Generated outputs
 dist/
